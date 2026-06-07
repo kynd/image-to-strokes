@@ -1,0 +1,16 @@
+# Node
+node_modules/
+
+# Reference project (dev-only)
+reference/
+
+# Local images and saved analysis data (private — use assets/ for defaults)
+faces/
+analysis/
+
+# macOS
+.DS_Store
+
+# Editor
+.vscode/
+.idea/

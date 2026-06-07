@@ -1,0 +1,2043 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Image to Strokes</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@100..800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.165.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.165.0/examples/jsm/"
+    }
+  }
+  </script>
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #fff;
+      color: #111;
+      font-family: 'Sora', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 48px 24px 64px;
+    }
+
+    header {
+      width: 100%;
+      max-width: 960px;
+      display: flex;
+      align-items: center;
+      gap: 24px;
+      border-bottom: 1px solid #e8e8e8;
+      padding-bottom: 20px;
+    }
+
+    h1 {
+      font-size: 1rem;
+      font-weight: 500;
+      letter-spacing: 0.01em;
+      color: #111;
+      white-space: nowrap;
+    }
+
+    .tabs { display: flex; gap: 4px; }
+
+    .tab-btn {
+      background: none;
+      border: none;
+      font-family: 'Sora', sans-serif;
+      font-size: 0.8rem;
+      font-weight: 400;
+      color: #aaa;
+      padding: 5px 14px;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s;
+    }
+    .tab-btn:hover:not(:disabled) { background: #f0f0f0; color: #111; }
+    .tab-btn.active { background: #111; color: #fff; }
+    .tab-btn:disabled { color: #ccc; cursor: not-allowed; }
+
+    .toolbar {
+      width: 100%;
+      max-width: 960px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 16px 0 12px;
+    }
+
+    label.upload-btn {
+      background: #fff;
+      border: 1px solid #d0d0d0;
+      color: #444;
+      padding: 7px 16px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-family: 'Sora', sans-serif;
+      font-size: 0.8rem;
+      font-weight: 400;
+      transition: border-color 0.15s, color 0.15s;
+      white-space: nowrap;
+    }
+    label.upload-btn:hover { border-color: #888; color: #111; }
+    #file-input { display: none; }
+
+    button#analyze-btn { color: #ccc; }
+    button#analyze-btn:hover { color: #555; }
+    button#analyze-btn:disabled { color: #e0e0e0; cursor: not-allowed; background: none; }
+
+    button#save-btn {
+      background: #fff;
+      border: 1px solid #d0d0d0;
+      color: #444;
+      padding: 7px 14px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-family: 'Sora', sans-serif;
+      font-size: 0.8rem;
+      font-weight: 400;
+      transition: border-color 0.15s, color 0.15s;
+      white-space: nowrap;
+    }
+    button#save-btn:hover:not(:disabled) { border-color: #888; color: #111; }
+    button#save-btn:disabled { color: #ccc; border-color: #e8e8e8; cursor: not-allowed; }
+
+    .load-wrap {
+      display: flex;
+      align-items: center;
+      gap: 0;
+      border: 1px solid #d0d0d0;
+      border-radius: 6px;
+      overflow: hidden;
+    }
+    #load-select {
+      background: #fff;
+      border: none;
+      outline: none;
+      color: #444;
+      padding: 7px 8px;
+      font-family: 'Sora', sans-serif;
+      font-size: 0.8rem;
+      font-weight: 400;
+      cursor: pointer;
+      max-width: 150px;
+    }
+    #load-select:disabled { color: #ccc; cursor: not-allowed; }
+    #load-go {
+      background: none;
+      border: none;
+      border-left: 1px solid #e0e0e0;
+      color: #888;
+      padding: 7px 10px;
+      cursor: pointer;
+      font-size: 0.75rem;
+      font-family: 'Sora', sans-serif;
+      transition: color 0.15s, background 0.15s;
+    }
+    #load-go:hover:not(:disabled) { background: #f5f5f5; color: #111; }
+    #load-go:disabled { color: #ccc; cursor: not-allowed; }
+
+    .progress-wrap { flex: 1; display: flex; align-items: center; gap: 10px; min-width: 0; }
+    .progress-bar  { flex: 1; height: 1px; background: #ebebeb; min-width: 30px; }
+    .progress-fill { height: 1px; background: #111; width: 0%; transition: width 0.4s ease; }
+    #status {
+      font-size: 0.72rem;
+      font-weight: 300;
+      color: #999;
+      letter-spacing: 0.02em;
+      white-space: nowrap;
+    }
+    .toolbar-actions {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      flex-shrink: 0;
+    }
+
+    .tab-panel { width: 100%; max-width: 960px; }
+
+    /* analyze grid */
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16px;
+      width: 100%;
+    }
+    @media (max-width: 600px) { .grid { grid-template-columns: 1fr; } }
+
+    .panel {
+      background: #fafafa;
+      border: 1px solid #ebebeb;
+      border-radius: 8px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    .panel-title {
+      font-size: 0.65rem;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: #bbb;
+      padding: 10px 14px 8px;
+      background: #fff;
+      border-bottom: 1px solid #ebebeb;
+    }
+    .panel canvas, .panel img { width: 100%; height: auto; display: block; }
+    .panel .placeholder {
+      width: 100%;
+      aspect-ratio: 3/4;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #d8d8d8;
+      font-size: 0.75rem;
+      font-weight: 300;
+      letter-spacing: 0.05em;
+    }
+
+    /* 3D panel */
+    #three-wrap {
+      position: relative;
+      width: 100%;
+      max-width: min(100%, 80vh); /* keep square canvas on screen */
+      aspect-ratio: 1 / 1; /* overridden by JS setCanvasSize */
+      background: #0d0d0d;
+      border-radius: 8px;
+      overflow: hidden;
+      margin-bottom: 16px;
+    }
+    #three-canvas { width: 100% !important; height: 100% !important; display: block; }
+    #fps-meter {
+      position: absolute;
+      top: 10px;
+      right: 14px;
+      font-size: 0.7rem;
+      font-weight: 500;
+      color: rgba(255,255,255,0.35);
+      letter-spacing: 0.06em;
+      pointer-events: none;
+    }
+
+    /* 3D controls */
+    .controls-3d {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+    }
+
+    .ctrl-section {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px 28px;
+      align-items: center;
+      padding: 12px 0 10px;
+      border-top: 1px solid #f0f0f0;
+    }
+    .ctrl-section:first-child { border-top: none; padding-top: 4px; }
+
+    .ctrl-section-label {
+      font-size: 0.58rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: #ccc;
+      width: 100%;
+      margin-bottom: -4px;
+    }
+
+    .ctrl-group { display: flex; align-items: center; gap: 8px; }
+    .ctrl-group label { font-size: 0.73rem; color: #666; white-space: nowrap; }
+    .ctrl-group input[type=range] { width: 100px; accent-color: #111; }
+    .ctrl-group input[type=color] {
+      width: 32px; height: 24px; padding: 1px 2px;
+      border: 1px solid #d0d0d0; border-radius: 4px; cursor: pointer;
+      background: none;
+    }
+    .ctrl-group button.ctrl-btn {
+      background: #fff; border: 1px solid #d0d0d0; color: #444;
+      padding: 4px 10px; border-radius: 5px; cursor: pointer;
+      font-family: 'Sora', sans-serif; font-size: 0.72rem; font-weight: 400;
+      transition: border-color 0.15s, color 0.15s; white-space: nowrap;
+    }
+    .ctrl-group button.ctrl-btn:hover { border-color: #888; color: #111; }
+    .ctrl-group select {
+      background: #fff; border: 1px solid #d0d0d0; border-radius: 5px;
+      font-family: 'Sora', sans-serif; font-size: 0.72rem; color: #444;
+      padding: 4px 8px; cursor: pointer; outline: none;
+    }
+    .ctrl-group select:hover { border-color: #888; }
+
+    /* ── Icon button ─────────────────────────────────────────────────────── */
+    .icon-btn {
+      background: none; border: none; cursor: pointer;
+      padding: 5px; color: #666;
+      display: flex; align-items: center; justify-content: center;
+      border-radius: 5px;
+      transition: background 0.15s, color 0.15s;
+      flex-shrink: 0;
+    }
+    .icon-btn:hover { background: #f0f0f0; color: #111; }
+    .icon-btn .material-icons { font-size: 20px; line-height: 1; }
+
+    /* ── Settings overlay ────────────────────────────────────────────────── */
+    .settings-backdrop {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.18);
+      z-index: 200;
+      opacity: 0; pointer-events: none;
+      transition: opacity 0.22s;
+    }
+    .settings-backdrop.open { opacity: 1; pointer-events: auto; }
+
+    .settings-overlay {
+      position: fixed; top: 0; right: 0;
+      width: 320px; height: 100dvh;
+      background: #fff;
+      border-left: 1px solid #e8e8e8;
+      box-shadow: -6px 0 32px rgba(0,0,0,0.08);
+      z-index: 201;
+      display: flex; flex-direction: column;
+      transform: translateX(100%);
+      transition: transform 0.25s cubic-bezier(0.4,0,0.2,1);
+    }
+    .settings-overlay.open { transform: translateX(0); }
+
+    .settings-hdr {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 13px 16px 13px 20px;
+      border-bottom: 1px solid #ebebeb;
+      flex-shrink: 0;
+    }
+    .settings-hdr-title {
+      font-size: 0.65rem; font-weight: 700;
+      letter-spacing: 0.12em; text-transform: uppercase; color: #aaa;
+    }
+
+    .settings-body {
+      flex: 1; overflow-y: auto;
+      padding: 0 20px 48px;
+    }
+    .settings-body::-webkit-scrollbar { width: 4px; }
+    .settings-body::-webkit-scrollbar-thumb { background: #e0e0e0; border-radius: 2px; }
+
+    /* Collapsible section labels */
+    .ctrl-section-label {
+      cursor: pointer;
+      display: flex !important;
+      align-items: center;
+      justify-content: space-between;
+      user-select: none;
+    }
+    .ctrl-section-label .material-icons {
+      font-size: 15px; color: #ccc; transition: transform 0.18s;
+    }
+    .ctrl-section.collapsed .ctrl-section-label .material-icons {
+      transform: rotate(-90deg);
+    }
+    .ctrl-section.collapsed > .ctrl-group { display: none; }
+    .ctrl-val {
+      font-size: 0.73rem;
+      font-weight: 600;
+      color: #111;
+      width: 52px;
+      text-align: right;
+      border: none;
+      border-bottom: 1px solid #d8d8d8;
+      background: none;
+      padding: 1px 2px;
+      outline: none;
+      font-family: 'Sora', sans-serif;
+    }
+    .ctrl-val:focus { border-bottom-color: #111; }
+    .ctrl-val::-webkit-inner-spin-button,
+    .ctrl-val::-webkit-outer-spin-button { -webkit-appearance: none; }
+    .ctrl-val[type=number] { -moz-appearance: textfield; }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>Image to Strokes</h1>
+  <nav class="tabs">
+    <button class="tab-btn active" data-tab="analyze">Analyze</button>
+    <button class="tab-btn" data-tab="3d" id="tab-3d" disabled>3D View</button>
+  </nav>
+</header>
+
+<div class="toolbar">
+  <label class="upload-btn" for="file-input">Upload image</label>
+  <input type="file" id="file-input" accept="image/*" />
+  <div class="progress-wrap">
+    <div class="progress-bar"><div class="progress-fill" id="progress"></div></div>
+    <span id="status">Loading models…</span>
+  </div>
+  <div class="toolbar-actions">
+    <button id="analyze-btn" class="icon-btn" title="Re-analyze" disabled>
+      <span class="material-icons">refresh</span>
+    </button>
+    <button id="save-btn" disabled>Save</button>
+    <div class="load-wrap">
+      <select id="load-select" disabled><option value="">Load…</option></select>
+      <button id="load-go" disabled>↑</button>
+    </div>
+    <button id="btn-settings" class="icon-btn" title="3D Settings">
+      <span class="material-icons">tune</span>
+    </button>
+  </div>
+</div>
+
+<div class="tab-panel" id="panel-analyze">
+  <div class="grid">
+    <div class="panel">
+      <div class="panel-title">Original</div>
+      <div class="placeholder" id="orig-placeholder">no image</div>
+      <img id="orig-img" style="display:none" alt="original" />
+    </div>
+    <div class="panel">
+      <div class="panel-title">Segmentation</div>
+      <div class="placeholder" id="seg-placeholder">run analyze</div>
+      <canvas id="seg-canvas" style="display:none"></canvas>
+    </div>
+    <div class="panel">
+      <div class="panel-title">Depth Map</div>
+      <div class="placeholder" id="depth-placeholder">run analyze</div>
+      <canvas id="depth-canvas" style="display:none"></canvas>
+    </div>
+    <div class="panel">
+      <div class="panel-title">Face Landmarks</div>
+      <div class="placeholder" id="lm-placeholder">run analyze</div>
+      <canvas id="lm-canvas" style="display:none"></canvas>
+    </div>
+  </div>
+</div>
+
+<div class="tab-panel" id="panel-3d" hidden>
+  <div id="three-wrap">
+    <canvas id="three-canvas"></canvas>
+    <div id="fps-meter">-- fps</div>
+  </div>
+</div>
+
+<!-- ── Settings overlay ──────────────────────────────────────────────────── -->
+<div id="settings-backdrop" class="settings-backdrop"></div>
+<div id="settings-overlay" class="settings-overlay">
+  <div class="settings-hdr">
+    <span class="settings-hdr-title">3D Settings</span>
+    <button id="btn-settings-close" class="icon-btn">
+      <span class="material-icons">close</span>
+    </button>
+  </div>
+  <div class="settings-body controls-3d">
+
+    <!-- STROKES -->
+    <div class="ctrl-section">
+      <span class="ctrl-section-label">Strokes</span>
+      <div class="ctrl-group">
+        <label>Count</label>
+        <input type="range" id="ctrl-count" min="1" max="30000" value="2000" step="1" />
+        <input type="number" class="ctrl-val" id="val-count" value="2000" />
+      </div>
+      <div class="ctrl-group">
+        <label>Density ratio</label>
+        <input type="range" id="ctrl-density" min="1" max="500" value="200" step="1" />
+        <input type="number" class="ctrl-val" id="val-density" value="200" />
+      </div>
+      <div class="ctrl-group">
+        <label>Min length</label>
+        <input type="range" id="ctrl-minlen" min="2" max="20" value="3" step="1" />
+        <input type="number" class="ctrl-val" id="val-minlen" value="3" />
+      </div>
+      <div class="ctrl-group">
+        <label>Max length</label>
+        <input type="range" id="ctrl-maxlen" min="4" max="40" value="14" step="1" />
+        <input type="number" class="ctrl-val" id="val-maxlen" value="14" />
+      </div>
+    </div>
+
+    <!-- SIZE & LAYERING -->
+    <div class="ctrl-section">
+      <span class="ctrl-section-label">Size &amp; Layering</span>
+      <div class="ctrl-group">
+        <label>Large width</label>
+        <input type="range" id="ctrl-coarse" min="1" max="50" value="20" step="1" />
+        <input type="number" class="ctrl-val" id="val-coarse" value="20" />
+      </div>
+      <div class="ctrl-group">
+        <label>Fine width</label>
+        <input type="range" id="ctrl-fine" min="1" max="10" value="2" step="1" />
+        <input type="number" class="ctrl-val" id="val-fine" value="2" />
+      </div>
+      <div class="ctrl-group">
+        <label>Detail sharpness</label>
+        <input type="range" id="ctrl-sharpness" min="1" max="10" value="3" step="1" />
+        <input type="number" class="ctrl-val" id="val-sharpness" value="3" />
+      </div>
+      <div class="ctrl-group">
+        <label>Layer depth</label>
+        <input type="range" id="ctrl-layer" min="0" max="20" value="6" step="1" />
+        <input type="number" class="ctrl-val" id="val-layer" value="6" />
+      </div>
+    </div>
+
+    <!-- COLOR -->
+    <div class="ctrl-section">
+      <span class="ctrl-section-label">Color</span>
+      <div class="ctrl-group">
+        <label>Hue rotation</label>
+        <input type="range" id="ctrl-hue" min="-180" max="180" value="0" step="1" />
+        <input type="number" class="ctrl-val" id="val-hue" value="0" />
+      </div>
+      <div class="ctrl-group">
+        <label>Saturation</label>
+        <input type="range" id="ctrl-sat" min="0" max="200" value="90" step="5" />
+        <input type="number" class="ctrl-val" id="val-sat" value="90" />
+      </div>
+      <div class="ctrl-group">
+        <label>Color noise</label>
+        <input type="range" id="ctrl-cnoise" min="0" max="100" value="70" step="1" />
+        <input type="number" class="ctrl-val" id="val-cnoise" value="70" />
+      </div>
+    </div>
+
+    <!-- STROKE TYPE -->
+    <div class="ctrl-section">
+      <span class="ctrl-section-label">Stroke Type</span>
+      <div class="ctrl-group">
+        <label>Type</label>
+        <select id="ctrl-stroke-type">
+          <option value="legacy">Legacy</option>
+          <option value="reference" selected>Reference</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- STROKE STYLE -->
+    <div class="ctrl-section">
+      <span class="ctrl-section-label">Stroke Style</span>
+      <div class="ctrl-group">
+        <label>Render</label>
+        <select id="ctrl-render-mode">
+          <option value="0">Flat</option>
+          <option value="1">Gradient along</option>
+          <option value="2">Gradient across</option>
+          <option value="3" selected>Noise along</option>
+          <option value="4">Noise across</option>
+        </select>
+      </div>
+      <div class="ctrl-group">
+        <label>Cap style</label>
+        <select id="ctrl-cap-style">
+          <option value="0">Square</option>
+          <option value="1" selected>Rounded</option>
+          <option value="2">Ragged</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- SURFACE -->
+    <div class="ctrl-section">
+      <span class="ctrl-section-label">Surface</span>
+      <div class="ctrl-group">
+        <label>Surface jitter</label>
+        <input type="range" id="ctrl-jitter" min="0" max="30" value="5" step="1" />
+        <input type="number" class="ctrl-val" id="val-jitter" value="5" />
+      </div>
+      <div class="ctrl-group">
+        <label>Wireframe</label>
+        <input type="checkbox" id="ctrl-wireframe" />
+      </div>
+      <div class="ctrl-group">
+        <label>Cull front</label>
+        <input type="checkbox" id="ctrl-cullfront" />
+      </div>
+      <div class="ctrl-group">
+        <label>Cull back</label>
+        <input type="checkbox" id="ctrl-cullback" />
+      </div>
+    </div>
+
+    <!-- CANVAS -->
+    <div class="ctrl-section">
+      <span class="ctrl-section-label">Canvas</span>
+      <div class="ctrl-group">
+        <label>Width</label>
+        <input type="number" id="ctrl-cw" value="1280" min="128" max="4096" class="ctrl-val" />
+        <label>Height</label>
+        <input type="number" id="ctrl-ch" value="1280" min="128" max="4096" class="ctrl-val" />
+        <button class="ctrl-btn" id="btn-setsize">Apply</button>
+      </div>
+      <div class="ctrl-group">
+        <label>Background</label>
+        <input type="color" id="ctrl-bgcolor" value="#0d0d0d" />
+        <button class="ctrl-btn" id="btn-pickbg">Pick on click</button>
+        <button class="ctrl-btn" id="btn-randombg">Random sample</button>
+      </div>
+      <div class="ctrl-group">
+        <button class="ctrl-btn" id="btn-save-png">Save PNG</button>
+        <button class="ctrl-btn" id="btn-save-jpg">Save JPG</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { StrokeDef } from './js/StrokeDef.js';
+import { StrokeRenderer } from './js/StrokeRenderer.js';
+import {
+  ImageSegmenter, FaceLandmarker, FilesetResolver
+} from 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/vision_bundle.mjs';
+import { pipeline, env } from 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.3.3';
+
+// ── state ──────────────────────────────────────────────────────────────────
+let segmenter = null, landmarker = null, depthPipe = null;
+let currentImageElement = null;
+let currentImageName    = 'portrait'; // used as default save filename
+let analysisData = null;
+
+const btn        = document.getElementById('analyze-btn');
+const saveBtn    = document.getElementById('save-btn');
+const loadSelect = document.getElementById('load-select');
+const loadGo     = document.getElementById('load-go');
+const fileInput  = document.getElementById('file-input');
+const statusEl   = document.getElementById('status');
+const progressEl = document.getElementById('progress');
+
+function setStatus(msg, pct) {
+  statusEl.textContent = msg;
+  if (pct !== undefined) progressEl.style.width = pct + '%';
+  console.log('[status]', msg);
+}
+
+// ── tab switching ──────────────────────────────────────────────────────────
+document.querySelectorAll('.tab-btn').forEach(tab => {
+  tab.addEventListener('click', () => {
+    if (tab.disabled) return;
+    document.querySelectorAll('.tab-btn').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(p => { p.hidden = true; });
+    tab.classList.add('active');
+    document.getElementById('panel-' + tab.dataset.tab).hidden = false;
+    if (tab.dataset.tab === '3d') {
+      if (!threeRenderer) init3DView();
+      else { resumeAnimation(); if (threeDirty) { threeDirty = false; rebuild3D(); } }
+    } else {
+      pauseAnimation();
+    }
+  });
+});
+
+// ── model init ─────────────────────────────────────────────────────────────
+async function initModels() {
+  btn.disabled = true;
+
+  let vision;
+  try {
+    setStatus('Loading MediaPipe runtime…', 5);
+    vision = await FilesetResolver.forVisionTasks(
+      'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm'
+    );
+  } catch (err) {
+    setStatus('Failed to load MediaPipe: ' + err.message, 0);
+    btn.disabled = false;
+    return;
+  }
+
+  try {
+    setStatus('Loading segmentation model…', 20);
+    segmenter = await ImageSegmenter.createFromOptions(vision, {
+      baseOptions: {
+        modelAssetPath: 'https://storage.googleapis.com/mediapipe-models/image_segmenter/selfie_multiclass_256x256/float32/latest/selfie_multiclass_256x256.tflite',
+        delegate: 'GPU',
+      },
+      runningMode: 'IMAGE',
+      outputCategoryMask: true,
+      outputConfidenceMasks: false,
+    });
+  } catch (err) { console.error('[init] Segmenter failed', err); }
+
+  try {
+    setStatus('Loading face landmark model…', 45);
+    landmarker = await FaceLandmarker.createFromOptions(vision, {
+      baseOptions: {
+        modelAssetPath: 'https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/latest/face_landmarker.task',
+        delegate: 'GPU',
+      },
+      runningMode: 'IMAGE',
+      numFaces: 1,
+      outputFaceBlendshapes: false,
+      outputFacialTransformationMatrixes: false,
+    });
+  } catch (err) { console.error('[init] FaceLandmarker failed', err); }
+
+  try {
+    setStatus('Loading depth model…', 60);
+    env.allowLocalModels = false;
+    env.useBrowserCache  = true;
+    depthPipe = await pipeline('depth-estimation', 'onnx-community/depth-anything-v2-small', { dtype: 'fp32' });
+  } catch (err) {
+    try {
+      depthPipe = await pipeline('depth-estimation', 'onnx-community/depth-anything-v2-small', { dtype: 'q8' });
+    } catch (err2) { console.error('[init] Depth failed', err2); }
+  }
+
+  setStatus('Loading default image…', 95);
+  await loadDefaultImage();
+  btn.disabled = false;
+
+  const loaded = await autoLoadLatest();
+  if (!loaded) {
+    if (currentImageElement) {
+      await analyzeCurrentImage();
+    } else {
+      setStatus('Ready. Upload an image to begin.', 100);
+    }
+  } else {
+    setStatus('Loaded saved analysis — ready.', 100);
+  }
+}
+
+// ── image loading ──────────────────────────────────────────────────────────
+function loadImageElement(src) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload  = () => resolve(img);
+    img.onerror = reject;
+    img.src = src;
+  });
+}
+
+async function loadDefaultImage() {
+  try {
+    const img = await loadImageElement('assets/chopin.png');
+    currentImageName = 'chopin';
+    showOriginal(img);
+  } catch {
+    // No default image — user will upload one
+  }
+}
+
+function showOriginal(img) {
+  currentImageElement = img;
+  const origImg = document.getElementById('orig-img');
+  origImg.src = img.src;
+  origImg.style.display = 'block';
+  document.getElementById('orig-placeholder').style.display = 'none';
+}
+
+fileInput.addEventListener('change', async (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  currentImageName = file.name.replace(/\.[^.]+$/, '').replace(/[^a-zA-Z0-9_\-]/g, '_') || 'portrait';
+  const img = await loadImageElement(URL.createObjectURL(file));
+  showOriginal(img);
+  ['seg-canvas','depth-canvas','lm-canvas'].forEach(id =>
+    document.getElementById(id).style.display = 'none'
+  );
+  ['seg-placeholder','depth-placeholder','lm-placeholder'].forEach(id =>
+    document.getElementById(id).style.display = 'flex'
+  );
+  analysisData = null;
+  document.getElementById('tab-3d').disabled = true;
+  saveBtn.disabled = true;
+  await analyzeCurrentImage();
+});
+
+// ── analyze ────────────────────────────────────────────────────────────────
+async function analyzeCurrentImage() {
+  if (!currentImageElement) return;
+  btn.disabled = true;
+  analysisData = {};
+
+  // Capture origPixels first — render functions need it during the analysis calls below
+  const iw = currentImageElement.naturalWidth;
+  const ih = currentImageElement.naturalHeight;
+  const oc = document.createElement('canvas');
+  oc.width = iw; oc.height = ih;
+  oc.getContext('2d').drawImage(currentImageElement, 0, 0);
+  analysisData.origPixels = oc.getContext('2d').getImageData(0, 0, iw, ih).data;
+  analysisData.origW = iw;
+  analysisData.origH = ih;
+
+  if (segmenter) {
+    try { setStatus('Running segmentation…', 10); await runSegmentation(currentImageElement); }
+    catch (err) { console.error('[analyze] seg error', err); }
+  }
+
+  if (depthPipe) {
+    try { setStatus('Running depth estimation…', 40); await runDepth(currentImageElement); }
+    catch (err) { console.error('[analyze] depth error', err); }
+  }
+
+  if (landmarker) {
+    try { setStatus('Running face landmarks…', 75); await runLandmarks(currentImageElement); }
+    catch (err) { console.error('[analyze] landmarks error', err); }
+  }
+
+  setStatus('Done.', 100);
+  btn.disabled = false;
+  saveBtn.disabled = false;
+  document.getElementById('tab-3d').disabled = false;
+}
+
+btn.addEventListener('click', () => analyzeCurrentImage());
+
+// ── Save / Load ────────────────────────────────────────────────────────────
+const isLocal = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+const API = isLocal ? `${location.protocol}//${location.host}/api` : null;
+
+// Hide save/load UI when running outside localhost (no server available)
+if (!isLocal) {
+  document.getElementById('save-btn').style.display    = 'none';
+  document.querySelector('.load-wrap').style.display   = 'none';
+}
+
+// typed-array ↔ base64 (chunked to avoid stack overflow on large arrays)
+function toB64(u8) {
+  const CHUNK = 0x8000;
+  let s = '';
+  for (let i = 0; i < u8.length; i += CHUNK)
+    s += String.fromCharCode(...u8.subarray(i, i + CHUNK));
+  return btoa(s);
+}
+function fromB64(b64) {
+  const bin = atob(b64);
+  const u8  = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
+  return u8;
+}
+function f32ToB64(f32)  { return toB64(new Uint8Array(f32.buffer)); }
+function b64ToF32(b64)  { return new Float32Array(fromB64(b64).buffer); }
+
+// Downsample origPixels to max 1024px before saving (color sampling doesn't need full res)
+function cappedOrigPixels(pixels, w, h, maxDim = 1024) {
+  const scale = Math.min(1, maxDim / Math.max(w, h));
+  if (scale === 1) return { pixels, w, h };
+  const cw = Math.round(w * scale), ch = Math.round(h * scale);
+  const src = document.createElement('canvas');
+  src.width = w; src.height = h;
+  src.getContext('2d').putImageData(new ImageData(new Uint8ClampedArray(pixels), w, h), 0, 0);
+  const dst = document.createElement('canvas');
+  dst.width = cw; dst.height = ch;
+  dst.getContext('2d').drawImage(src, 0, 0, cw, ch);
+  return { pixels: dst.getContext('2d').getImageData(0, 0, cw, ch).data, w: cw, h: ch };
+}
+
+async function saveAnalysis() {
+  if (!analysisData) return;
+  const name = (prompt('Save as:', currentImageName) || '').trim().replace(/[^a-zA-Z0-9_\-]/g, '_');
+  if (!name) return;
+
+  setStatus('Saving…');
+  try {
+    const { pixels: op, w: ow, h: oh } =
+      cappedOrigPixels(analysisData.origPixels, analysisData.origW, analysisData.origH);
+
+    const payload = {
+      segMask:     analysisData.segMask     ? toB64(analysisData.segMask)          : null,
+      segW:        analysisData.segW,
+      segH:        analysisData.segH,
+      depthValues: analysisData.depthValues ? f32ToB64(analysisData.depthValues)   : null,
+      depthW:      analysisData.depthW,
+      depthH:      analysisData.depthH,
+      landmarks:   analysisData.landmarks   ? JSON.parse(JSON.stringify(analysisData.landmarks)) : null,
+      origPixels:  toB64(new Uint8Array(op instanceof Uint8ClampedArray ? op.buffer : op)),
+      origW:       ow,
+      origH:       oh,
+    };
+
+    const res = await fetch(`${API}/save/${name}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) throw new Error(await res.text());
+    setStatus(`Saved as "${name}"`, 100);
+    await refreshLoadSelect(name);
+  } catch (e) {
+    setStatus('Save failed: ' + e.message);
+    console.error('[save]', e);
+  }
+}
+
+async function loadAnalysis(name) {
+  if (!name) return;
+  setStatus(`Loading "${name}"…`);
+  try {
+    const res = await fetch(`${API}/load/${name}`);
+    if (!res.ok) throw new Error('not found');
+    const d = await res.json();
+
+    analysisData = {
+      segMask:     d.segMask     ? fromB64(d.segMask)   : null,
+      segW:        d.segW,
+      segH:        d.segH,
+      depthValues: d.depthValues ? b64ToF32(d.depthValues) : null,
+      depthW:      d.depthW,
+      depthH:      d.depthH,
+      landmarks:   d.landmarks   || null,
+      origPixels:  fromB64(d.origPixels),
+      origW:       d.origW,
+      origH:       d.origH,
+    };
+    currentImageName = name;
+
+    // Show original image reconstructed from saved pixels
+    const c = document.createElement('canvas');
+    c.width = d.origW; c.height = d.origH;
+    c.getContext('2d').putImageData(
+      new ImageData(new Uint8ClampedArray(analysisData.origPixels.buffer), d.origW, d.origH), 0, 0
+    );
+    c.toBlob(blob => {
+      const img = new Image();
+      img.onload = () => showOriginal(img);
+      img.src = URL.createObjectURL(blob);
+    });
+
+    // Render all analysis visualizations from the loaded data
+    renderSegCanvas();
+    renderDepthCanvas();
+    renderLandmarksCanvas();
+
+    saveBtn.disabled = false;
+    document.getElementById('tab-3d').disabled = false;
+    setStatus(`Loaded "${name}" — ready.`, 100);
+
+    if (!document.getElementById('panel-3d').hidden) rebuild3D();
+    else threeDirty = true;
+
+  } catch (e) {
+    setStatus('Load failed: ' + e.message);
+    console.error('[load]', e);
+  }
+}
+
+async function refreshLoadSelect(selectName = null) {
+  if (!API) return;
+  try {
+    const res = await fetch(`${API}/list`);
+    if (!res.ok) return;
+    const names = await res.json();
+    loadSelect.innerHTML = '<option value="">Load…</option>';
+    names.forEach(n => {
+      const opt = document.createElement('option');
+      opt.value = n; opt.textContent = n;
+      if (n === selectName) opt.selected = true;
+      loadSelect.appendChild(opt);
+    });
+    const hasItems = names.length > 0;
+    loadSelect.disabled = !hasItems;
+    loadGo.disabled     = !hasItems;
+  } catch {
+    // Server not running — leave controls disabled silently
+  }
+}
+
+// Silently load the most recent saved analysis on launch (no error if none)
+async function autoLoadLatest() {
+  if (!API) return false;
+  try {
+    const listRes = await fetch(`${API}/list`);
+    if (!listRes.ok) return false;
+    const names = await listRes.json();
+    if (!names.length) return false;
+    const name = names[names.length - 1];
+    const res = await fetch(`${API}/load/${name}`);
+    if (!res.ok) return false;
+    const d = await res.json();
+
+    analysisData = {
+      segMask:     d.segMask     ? fromB64(d.segMask)      : null,
+      segW: d.segW, segH: d.segH,
+      depthValues: d.depthValues ? b64ToF32(d.depthValues) : null,
+      depthW: d.depthW, depthH: d.depthH,
+      landmarks:   d.landmarks   || null,
+      origPixels:  fromB64(d.origPixels),
+      origW: d.origW, origH: d.origH,
+    };
+    currentImageName = name;
+
+    renderSegCanvas();
+    renderDepthCanvas();
+    renderLandmarksCanvas();
+
+    saveBtn.disabled = false;
+    document.getElementById('tab-3d').disabled = false;
+    threeDirty = true;
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+saveBtn.addEventListener('click', saveAnalysis);
+loadGo.addEventListener('click', () => loadAnalysis(loadSelect.value));
+loadSelect.addEventListener('change', () => { loadGo.disabled = !loadSelect.value; });
+
+// ── segmentation ───────────────────────────────────────────────────────────
+const SEG_COLORS = [
+  [0,0,0,0], [160,60,220,200], [80,160,255,200],
+  [255,200,60,220], [60,200,120,180], [200,80,80,150],
+];
+
+// Render seg canvas from analysisData (works after a fresh run or a cache load)
+function renderSegCanvas() {
+  const { segMask, segW, segH, origPixels, origW, origH } = analysisData;
+  if (!segMask) return;
+
+  // Draw original at seg resolution via offscreen canvas
+  const src = document.createElement('canvas');
+  src.width = origW; src.height = origH;
+  src.getContext('2d').putImageData(
+    new ImageData(new Uint8ClampedArray(origPixels instanceof Uint8ClampedArray
+      ? origPixels : origPixels.buffer), origW, origH), 0, 0
+  );
+
+  const canvas = document.getElementById('seg-canvas');
+  canvas.width = segW; canvas.height = segH;
+  const ctx = canvas.getContext('2d');
+  ctx.drawImage(src, 0, 0, segW, segH);
+  const base = ctx.getImageData(0, 0, segW, segH);
+  const imgd = ctx.createImageData(segW, segH);
+
+  for (let i = 0; i < segMask.length; i++) {
+    const cat = segMask[i];
+    const col = SEG_COLORS[Math.min(cat, SEG_COLORS.length - 1)];
+    const bi = i * 4;
+    if (cat === 0) {
+      imgd.data[bi]   = Math.round(base.data[bi]   * 0.15);
+      imgd.data[bi+1] = Math.round(base.data[bi+1] * 0.15);
+      imgd.data[bi+2] = Math.round(base.data[bi+2] * 0.15);
+      imgd.data[bi+3] = 255;
+    } else {
+      const a = col[3] / 255;
+      imgd.data[bi]   = Math.round(base.data[bi]   * (1-a*0.5) + col[0]*a*0.5);
+      imgd.data[bi+1] = Math.round(base.data[bi+1] * (1-a*0.5) + col[1]*a*0.5);
+      imgd.data[bi+2] = Math.round(base.data[bi+2] * (1-a*0.5) + col[2]*a*0.5);
+      imgd.data[bi+3] = 255;
+    }
+  }
+  ctx.putImageData(imgd, 0, 0);
+
+  const labels = ['background','hair','body','face','clothes','others'];
+  ctx.font = 'bold 12px sans-serif';
+  labels.forEach((lbl, i) => {
+    if (i === 0) return;
+    const [r,g,b] = SEG_COLORS[i];
+    const x = 8, y = 8 + (i-1)*20;
+    ctx.fillStyle = `rgb(${r},${g},${b})`; ctx.fillRect(x, y, 14, 14);
+    ctx.fillStyle = '#fff'; ctx.shadowColor = '#000'; ctx.shadowBlur = 3;
+    ctx.fillText(lbl, x+18, y+11); ctx.shadowBlur = 0;
+  });
+
+  canvas.style.display = 'block';
+  document.getElementById('seg-placeholder').style.display = 'none';
+}
+
+async function runSegmentation(img) {
+  const result = segmenter.segment(img);
+  const mask = result.categoryMask;
+  const data = mask.getAsUint8Array();
+  analysisData.segMask = new Uint8Array(data);
+  analysisData.segW    = mask.width;
+  analysisData.segH    = mask.height;
+  mask.close();
+  renderSegCanvas();
+}
+
+// ── depth ──────────────────────────────────────────────────────────────────
+function renderDepthCanvas() {
+  const { depthValues, depthW, depthH } = analysisData;
+  if (!depthValues) return;
+
+  const canvas = document.getElementById('depth-canvas');
+  canvas.width = depthW; canvas.height = depthH;
+  const ctx  = canvas.getContext('2d');
+  const imgd = ctx.createImageData(depthW, depthH);
+
+  for (let i = 0; i < depthW * depthH; i++) {
+    const [r,g,b] = turboColormap(depthValues[i]);
+    imgd.data[i*4] = r; imgd.data[i*4+1] = g; imgd.data[i*4+2] = b; imgd.data[i*4+3] = 255;
+  }
+  ctx.putImageData(imgd, 0, 0);
+
+  canvas.style.display = 'block';
+  document.getElementById('depth-placeholder').style.display = 'none';
+}
+
+async function runDepth(img) {
+  const result = await depthPipe(img.src);
+  const depthImg = result.depth;
+  const rawData  = depthImg.data;
+  const dw = depthImg.width, dh = depthImg.height;
+  const channels = rawData.length / (dw * dh);
+
+  let dmin = Infinity, dmax = -Infinity;
+  for (let i = 0; i < dw*dh; i++) {
+    const v = channels === 1 ? rawData[i]
+      : (rawData[i*channels] + rawData[i*channels+1] + rawData[i*channels+2]) / 3;
+    if (v < dmin) dmin = v; if (v > dmax) dmax = v;
+  }
+  const drange = dmax - dmin || 1;
+  const depthValues = new Float32Array(dw * dh);
+  for (let i = 0; i < dw*dh; i++) {
+    const raw = channels === 1 ? rawData[i]
+      : (rawData[i*channels] + rawData[i*channels+1] + rawData[i*channels+2]) / 3;
+    depthValues[i] = (raw - dmin) / drange;
+  }
+
+  analysisData.depthValues = depthValues;
+  analysisData.depthW = dw;
+  analysisData.depthH = dh;
+  renderDepthCanvas();
+}
+
+function turboColormap(t) {
+  const r = Math.max(0, Math.min(255, Math.round(
+    t<0.25 ? 30+t*4*135 : t<0.5 ? 165+(t-0.25)*4*90 : t<0.75 ? 255-(t-0.5)*4*100 : 155-(t-0.75)*4*130)));
+  const g = Math.max(0, Math.min(255, Math.round(
+    t<0.25 ? 20+t*4*190 : t<0.5 ? 210+(t-0.25)*4*30 : t<0.75 ? 240-(t-0.5)*4*40 : 200-(t-0.75)*4*180)));
+  const b = Math.max(0, Math.min(255, Math.round(
+    t<0.25 ? 100+t*4*155 : t<0.5 ? 255-(t-0.25)*4*200 : t<0.75 ? 55-(t-0.5)*4*45 : 10+(t-0.75)*4*10)));
+  return [r,g,b];
+}
+
+// ── landmarks ─────────────────────────────────────────────────────────────
+const CONTOURS      = FaceLandmarker.FACE_LANDMARKS_TESSELATION;
+const FACE_OVAL     = FaceLandmarker.FACE_LANDMARKS_FACE_OVAL;
+const LEFT_EYE      = FaceLandmarker.FACE_LANDMARKS_LEFT_EYE;
+const RIGHT_EYE     = FaceLandmarker.FACE_LANDMARKS_RIGHT_EYE;
+const LEFT_EYEBROW  = FaceLandmarker.FACE_LANDMARKS_LEFT_EYEBROW;
+const RIGHT_EYEBROW = FaceLandmarker.FACE_LANDMARKS_RIGHT_EYEBROW;
+const LIPS          = FaceLandmarker.FACE_LANDMARKS_LIPS;
+const LEFT_IRIS     = FaceLandmarker.FACE_LANDMARKS_LEFT_IRIS;
+const RIGHT_IRIS    = FaceLandmarker.FACE_LANDMARKS_RIGHT_IRIS;
+
+function renderLandmarksCanvas() {
+  const { landmarks, origPixels, origW, origH } = analysisData;
+  if (!landmarks) return;
+
+  const canvas = document.getElementById('lm-canvas');
+  canvas.width = origW; canvas.height = origH;
+  const ctx = canvas.getContext('2d');
+
+  // Draw original image from saved pixels
+  ctx.putImageData(
+    new ImageData(new Uint8ClampedArray(origPixels instanceof Uint8ClampedArray
+      ? origPixels : origPixels.buffer), origW, origH), 0, 0
+  );
+
+  const W = origW, H = origH;
+  const pt = idx => ({ x: landmarks[idx].x * W, y: landmarks[idx].y * H });
+
+  function drawConn(connections, color, lw = 1) {
+    if (!connections) return;
+    ctx.strokeStyle = color; ctx.lineWidth = lw; ctx.beginPath();
+    for (const { start, end } of connections) {
+      const s = pt(start), e = pt(end); ctx.moveTo(s.x, s.y); ctx.lineTo(e.x, e.y);
+    }
+    ctx.stroke();
+  }
+
+  ctx.globalAlpha = 0.25; drawConn(CONTOURS, '#88aaff', 0.5); ctx.globalAlpha = 1;
+  drawConn(FACE_OVAL,     'rgba(180,140,255,0.85)', 1.5);
+  drawConn(LEFT_EYE,      'rgba(80,200,255,0.95)',  2);
+  drawConn(RIGHT_EYE,     'rgba(80,200,255,0.95)',  2);
+  drawConn(LEFT_EYEBROW,  'rgba(80,255,180,0.9)',   2);
+  drawConn(RIGHT_EYEBROW, 'rgba(80,255,180,0.9)',   2);
+  drawConn(LIPS,          'rgba(255,120,160,0.95)', 2);
+  drawConn(LEFT_IRIS,     'rgba(255,220,60,0.9)',   2);
+  drawConn(RIGHT_IRIS,    'rgba(255,220,60,0.9)',   2);
+
+  ctx.fillStyle = 'rgba(255,80,80,0.9)';
+  for (const idx of [1,4,33,61,263,291,168,197,5]) {
+    const p = pt(idx); ctx.beginPath(); ctx.arc(p.x,p.y,3,0,Math.PI*2); ctx.fill();
+  }
+
+  canvas.style.display = 'block';
+  document.getElementById('lm-placeholder').style.display = 'none';
+}
+
+async function runLandmarks(img) {
+  const result = landmarker.detect(img);
+
+  if (!result.faceLandmarks || result.faceLandmarks.length === 0) {
+    const canvas = document.getElementById('lm-canvas');
+    canvas.width = img.naturalWidth; canvas.height = img.naturalHeight;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(img, 0, 0);
+    ctx.fillStyle = 'rgba(255,80,80,0.9)'; ctx.font = 'bold 18px sans-serif';
+    ctx.fillText('No face detected', 12, 32);
+    canvas.style.display = 'block';
+    document.getElementById('lm-placeholder').style.display = 'none';
+    return;
+  }
+
+  analysisData.landmarks = result.faceLandmarks[0];
+  renderLandmarksCanvas();
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 3D VIEW
+// ═══════════════════════════════════════════════════════════════════════════
+let threeRenderer = null, threeScene = null, threeCamera = null;
+let orbitControls = null, animFrameId = null, strokeMesh = null;
+let strokeShaderMat = null, strokeWireframeMat = null, brushTex = null;
+let strokeRenderers = []; // StrokeRenderer instances for reference mode
+let fpsFrames = 0, fpsLast = 0;
+let pickingBgOnClick = false;
+let threeDirty = false; // set when analysisData changes while 3D tab isn't visible
+
+function init3DView() {
+  const wrap = document.getElementById('three-wrap');
+
+  threeRenderer = new THREE.WebGLRenderer({ canvas: document.getElementById('three-canvas'), antialias: true, preserveDrawingBuffer: true });
+  threeRenderer.setPixelRatio(1); // fixed resolution; setCanvasSize controls dimensions
+
+  threeScene = new THREE.Scene();
+  threeScene.background = new THREE.Color(0x0d0d0d);
+
+  threeCamera = new THREE.PerspectiveCamera(50, 1, 0.01, 50); // aspect updated by setCanvasSize
+  threeCamera.position.set(0, 0, 3.5);
+
+  orbitControls = new OrbitControls(threeCamera, threeRenderer.domElement);
+  orbitControls.enableDamping = true;
+  orbitControls.dampingFactor = 0.08;
+
+  threeScene.add(new THREE.AmbientLight(0xffffff, 0.5));
+  const key = new THREE.DirectionalLight(0xfff5e0, 1.2);
+  key.position.set(1.5, 2, 3); threeScene.add(key);
+  const fill = new THREE.DirectionalLight(0xc0d8ff, 0.4);
+  fill.position.set(-2, -1, 1); threeScene.add(fill);
+  const rim = new THREE.DirectionalLight(0xffffff, 0.25);
+  rim.position.set(0, 0, -3); threeScene.add(rim);
+
+  // Slider ↔ number-input bidirectional wiring
+  const sliderDefs = [
+    ['ctrl-count','val-count'], ['ctrl-density','val-density'],
+    ['ctrl-minlen','val-minlen'], ['ctrl-maxlen','val-maxlen'],
+    ['ctrl-coarse','val-coarse'], ['ctrl-fine','val-fine'],
+    ['ctrl-sharpness','val-sharpness'], ['ctrl-layer','val-layer'],
+    ['ctrl-hue','val-hue'], ['ctrl-sat','val-sat'],
+    ['ctrl-cnoise','val-cnoise'], ['ctrl-jitter','val-jitter'],
+  ];
+  sliderDefs.forEach(([sid, nid]) => {
+    const slider = document.getElementById(sid);
+    const numIn  = document.getElementById(nid);
+    numIn.min = slider.min; numIn.max = slider.max; numIn.step = slider.step;
+    slider.addEventListener('input', () => { numIn.value = slider.value; scheduleRebuild(); });
+    numIn.addEventListener('change', () => {
+      const v = Math.max(+slider.min, Math.min(+slider.max, +numIn.value || 0));
+      numIn.value = v; slider.value = v; scheduleRebuild();
+    });
+    numIn.addEventListener('keydown', e => { if (e.key === 'Enter') numIn.blur(); });
+  });
+
+  document.getElementById('ctrl-wireframe').addEventListener('change', () => {
+    if (strokeMesh && strokeShaderMat && strokeWireframeMat)
+      strokeMesh.material = document.getElementById('ctrl-wireframe').checked
+        ? strokeWireframeMat : strokeShaderMat;
+  });
+  document.getElementById('ctrl-cullfront').addEventListener('change', () => {
+    if (strokeShaderMat)
+      strokeShaderMat.uniforms.uCullFront.value =
+        document.getElementById('ctrl-cullfront').checked ? 1.0 : 0.0;
+  });
+  document.getElementById('ctrl-cullback').addEventListener('change', () => {
+    if (strokeShaderMat)
+      strokeShaderMat.uniforms.uCullBack.value =
+        document.getElementById('ctrl-cullback').checked ? 1.0 : 0.0;
+  });
+
+  document.getElementById('ctrl-stroke-type').addEventListener('change', scheduleRebuild);
+
+  document.getElementById('ctrl-render-mode').addEventListener('change', () => {
+    const isRef = document.getElementById('ctrl-stroke-type').value === 'reference';
+    if (isRef) {
+      // gradient direction and noise mode are baked at build time → rebuild
+      scheduleRebuild();
+    } else {
+      if (strokeShaderMat)
+        strokeShaderMat.uniforms.uRenderMode.value =
+          parseInt(document.getElementById('ctrl-render-mode').value);
+    }
+  });
+
+  document.getElementById('ctrl-cap-style').addEventListener('change', () => {
+    const isRef = document.getElementById('ctrl-stroke-type').value === 'reference';
+    if (isRef) {
+      // StrokeRenderer.updateCapStyle() works without rebuild
+      const capStyleNames = ['square', 'rounded', 'ragged'];
+      const style = capStyleNames[parseInt(document.getElementById('ctrl-cap-style').value)] || 'square';
+      for (const sr of strokeRenderers) sr.updateCapStyle(style);
+    } else {
+      if (strokeShaderMat)
+        strokeShaderMat.uniforms.uCapStyle.value =
+          parseInt(document.getElementById('ctrl-cap-style').value);
+    }
+  });
+
+  // Canvas size
+  function setCanvasSize(w, h) {
+    wrap.style.aspectRatio = `${w} / ${h}`;
+    threeRenderer.setSize(w, h, false);
+    threeCamera.aspect = w / h;
+    threeCamera.updateProjectionMatrix();
+  }
+  document.getElementById('btn-setsize').addEventListener('click', () => {
+    const w = Math.max(128, Math.min(4096, +document.getElementById('ctrl-cw').value || 1280));
+    const h = Math.max(128, Math.min(4096, +document.getElementById('ctrl-ch').value || 1280));
+    setCanvasSize(w, h);
+  });
+
+  // Background color
+  const bgInput = document.getElementById('ctrl-bgcolor');
+  bgInput.addEventListener('input', () => {
+    if (threeScene) threeScene.background = new THREE.Color(bgInput.value);
+  });
+
+  // Click-to-pick background color
+  const pickBtn = document.getElementById('btn-pickbg');
+  const threeCanvas = document.getElementById('three-canvas');
+  pickBtn.addEventListener('click', () => {
+    pickingBgOnClick = true;
+    threeCanvas.style.cursor = 'crosshair';
+    pickBtn.textContent = 'Click canvas…';
+  });
+  threeCanvas.addEventListener('click', e => {
+    if (!pickingBgOnClick) return;
+    pickingBgOnClick = false;
+    threeCanvas.style.cursor = '';
+    pickBtn.textContent = 'Pick on click';
+    const gl = threeRenderer.getContext();
+    const rect = threeCanvas.getBoundingClientRect();
+    const scaleX = threeCanvas.width  / rect.width;
+    const scaleY = threeCanvas.height / rect.height;
+    const x = Math.round((e.clientX - rect.left) * scaleX);
+    const y = Math.round(threeCanvas.height - (e.clientY - rect.top) * scaleY);
+    const px = new Uint8Array(4);
+    gl.readPixels(x, y, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, px);
+    const hex = '#' + [px[0], px[1], px[2]].map(v => v.toString(16).padStart(2,'0')).join('');
+    bgInput.value = hex;
+    if (threeScene) threeScene.background = new THREE.Color(hex);
+  });
+
+  // Random sample from original image → background
+  document.getElementById('btn-randombg').addEventListener('click', () => {
+    if (!analysisData) return;
+    const { origPixels, origW, origH } = analysisData;
+    const idx = (Math.floor(Math.random() * origH) * origW + Math.floor(Math.random() * origW)) * 4;
+    const hex = '#' + [origPixels[idx], origPixels[idx+1], origPixels[idx+2]]
+      .map(v => v.toString(16).padStart(2,'0')).join('');
+    bgInput.value = hex;
+    if (threeScene) threeScene.background = new THREE.Color(hex);
+  });
+
+  // Save image helper
+  function saveCanvas(fmt) {
+    threeRenderer.render(threeScene, threeCamera);
+    const mime = fmt === 'jpg' ? 'image/jpeg' : 'image/png';
+    const a = document.createElement('a');
+    a.href = threeCanvas.toDataURL(mime, 0.95);
+    a.download = (currentImageName || 'portrait') + '_3d.' + fmt;
+    a.click();
+  }
+  document.getElementById('btn-save-png').addEventListener('click', () => saveCanvas('png'));
+  document.getElementById('btn-save-jpg').addEventListener('click', () => saveCanvas('jpg'));
+
+  brushTex = generateBrushTexture();
+  setCanvasSize(1280, 1280);
+  rebuild3D();
+  fpsLast = performance.now();
+  animate();
+}
+
+function pauseAnimation()  {
+  if (animFrameId) { cancelAnimationFrame(animFrameId); animFrameId = null; }
+}
+function resumeAnimation() {
+  if (threeRenderer && !animFrameId) { fpsLast = performance.now(); fpsFrames = 0; animate(); }
+}
+
+let rebuildTimer = null;
+function scheduleRebuild() { clearTimeout(rebuildTimer); rebuildTimer = setTimeout(rebuild3D, 350); }
+
+function getParams() {
+  const g = id => parseFloat(document.getElementById(id).value);
+  return {
+    count:      g('ctrl-count'),
+    density:    g('ctrl-density'),  // 1..500, feature-zone concentration ratio
+    minSteps:   g('ctrl-minlen'),
+    maxSteps:   g('ctrl-maxlen'),
+    coarse:     g('ctrl-coarse'),
+    fine:       g('ctrl-fine'),
+    sharpness:  g('ctrl-sharpness'),
+    layerDepth: g('ctrl-layer'),
+    hueRot:     g('ctrl-hue'),
+    satMult:    g('ctrl-sat') / 100,
+    colorNoise: g('ctrl-cnoise') / 100,
+    jitter:     g('ctrl-jitter'),
+  };
+}
+
+function generateBrushTexture() {
+  const W = 512, H = 256, NB = 28;
+
+  function hash(n) { return ((Math.sin(n * 127.1) * 43758.5453) % 1 + 1) % 1; }
+  function noise2(x, y) {
+    const ix = Math.floor(x), iy = Math.floor(y);
+    const fx = x - ix, fy = y - iy;
+    const ux = fx*fx*(3-2*fx), uy = fy*fy*(3-2*fy);
+    const h00 = hash(ix     + iy*137), h10 = hash(ix+1 + iy*137);
+    const h01 = hash(ix     + (iy+1)*137), h11 = hash(ix+1 + (iy+1)*137);
+    return h00*(1-ux)*(1-uy) + h10*ux*(1-uy) + h01*(1-ux)*uy + h11*ux*uy;
+  }
+
+  const pixels = new Uint8Array(W * H);
+  for (let b = 0; b < NB; b++) {
+    const r1 = hash(b*17.3), r2 = hash(b*53.7), r3 = hash(b*89.1), r4 = hash(b*31.9);
+    const gapL = 0.02 + r1*0.06, gapR = 0.02 + r2*0.06;
+    const startT = r3*0.10, endT = 1.0 - r4*0.12;
+    const baseOp = 0.88 + hash(b*7.1)*0.12;
+    const x0 = Math.floor(b/NB*W), x1 = Math.floor((b+1)/NB*W);
+    for (let px = x0; px < x1; px++) {
+      const bLocal = (px - x0) / Math.max(1, x1 - x0 - 1);
+      for (let py = 0; py < H; py++) {
+        const t = py / (H - 1);
+        // Organic edge: value noise + sin modulation
+        const edgeN = (noise2(b*1.7 + 3.1, t*10) - 0.5) * 0.06;
+        const sinV  = Math.sin(t*22 + r1*6.28) * 0.012;
+        const eL = Math.max(0.01, gapL + edgeN + sinV);
+        const eR = Math.max(0.01, gapR - edgeN - sinV);
+        if (bLocal < eL || bLocal > 1 - eR) { pixels[py*W+px] = 0; continue; }
+        // Ragged ends with noise
+        const sN = noise2(b*2.3+1, t*35)*0.025;
+        const eN = noise2(b*3.1+5, t*35)*0.025;
+        if (t < startT + sN || t > endT - eN) { pixels[py*W+px] = 0; continue; }
+        // Tip fade + soft bristle edges
+        const tipFade  = Math.min(1, t/0.03) * Math.min(1, (1-t)/0.03);
+        const edgeDist = Math.min(bLocal - eL, (1-eR) - bLocal);
+        const soft     = Math.min(1, edgeDist * 50);
+        pixels[py*W+px] = Math.round(baseOp * tipFade * soft * 255);
+      }
+    }
+  }
+  const rgba = new Uint8ClampedArray(W * H * 4);
+  for (let i = 0; i < W*H; i++) {
+    rgba[i*4] = rgba[i*4+1] = rgba[i*4+2] = 255; rgba[i*4+3] = pixels[i];
+  }
+  const cvs = document.createElement('canvas');
+  cvs.width = W; cvs.height = H;
+  cvs.getContext('2d').putImageData(new ImageData(rgba, W, H), 0, 0);
+  const tex = new THREE.CanvasTexture(cvs);
+  tex.wrapS = THREE.RepeatWrapping;
+  tex.wrapT = THREE.ClampToEdgeWrapping;
+  return tex;
+}
+
+const BRUSH_VERT = /* glsl */`
+  attribute vec2  strokeUV;
+  attribute vec3  colorA;
+  attribute vec3  colorB;
+  attribute vec3  strokeNormal;
+  attribute float strokeSeed;
+  varying vec2  vStrokeUV;
+  varying vec3  vColorA;
+  varying vec3  vColorB;
+  varying float vStrokeFacing;
+  varying float vStrokeSeed;
+  void main() {
+    vStrokeUV    = strokeUV;
+    vColorA      = colorA;
+    vColorB      = colorB;
+    vStrokeSeed  = strokeSeed;
+    vec3 snView  = normalize(normalMatrix * strokeNormal);
+    vStrokeFacing = snView.z;
+    gl_Position  = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+  }
+`;
+
+const BRUSH_FRAG = /* glsl */`
+  precision mediump float;
+  uniform float     uCullFront;
+  uniform float     uCullBack;
+  uniform sampler2D uBrushTex;
+  uniform int       uRenderMode; // 0=flat 1=U-grad 2=V-grad 3=noise-U 4=noise-V
+  uniform int       uCapStyle;   // 0=square 1=rounded 2=ragged
+  uniform float     uCapFrac;    // cap region fraction (0..0.25)
+  varying vec2  vStrokeUV;
+  varying vec3  vColorA;
+  varying vec3  vColorB;
+  varying float vStrokeFacing;
+  varying float vStrokeSeed;
+
+  float hashf(vec3 p) {
+    p = fract(p * vec3(443.8975, 397.2973, 491.1871));
+    p += dot(p.xyz, p.yzx + 19.19);
+    return fract(p.x * p.y * p.z);
+  }
+  float vnoise(vec3 p) {
+    vec3 i = floor(p); vec3 f = fract(p);
+    vec3 u = f * f * (3.0 - 2.0 * f);
+    return mix(
+      mix(mix(hashf(i),            hashf(i+vec3(1,0,0)), u.x),
+          mix(hashf(i+vec3(0,1,0)),hashf(i+vec3(1,1,0)), u.x), u.y),
+      mix(mix(hashf(i+vec3(0,0,1)),hashf(i+vec3(1,0,1)), u.x),
+          mix(hashf(i+vec3(0,1,1)),hashf(i+vec3(1,1,1)), u.x), u.y),
+      u.z);
+  }
+
+  void main() {
+    if (uCullFront > 0.5 && vStrokeFacing > 0.0) discard;
+    if (uCullBack  > 0.5 && vStrokeFacing < 0.0) discard;
+
+    float s = vStrokeUV.x * 0.5 + 0.5; // 0..1 across stroke
+    float t = vStrokeUV.y;              // 0..1 along stroke
+
+    // ── Cap style ──────────────────────────────────────────────────────────
+    float capF = uCapFrac;
+    if (uCapStyle == 1) {  // rounded
+      if (t < capF && capF > 0.001) {
+        float dx = (t - capF) / capF;
+        float dy = (s - 0.5) / 0.5;
+        if (dx*dx + dy*dy > 1.0) discard;
+      } else if (t > 1.0 - capF && capF > 0.001) {
+        float dx = (t - (1.0 - capF)) / capF;
+        float dy = (s - 0.5) / 0.5;
+        if (dx*dx + dy*dy > 1.0) discard;
+      }
+    } else if (uCapStyle == 2) {  // ragged
+      if (t < capF && capF > 0.001) {
+        float prog  = t / capF;
+        float nv    = hashf(vec3(s * 120.0, vStrokeSeed * 100.0, 0.0));
+        float limit = 0.4 + 0.4 * sin(s * 60.0 + vStrokeSeed * 6.28) + 0.1 * nv;
+        float damp  = sin(s * 3.14159);
+        if (prog < limit * damp) discard;
+      } else if (t > 1.0 - capF && capF > 0.001) {
+        float prog  = (1.0 - t) / capF;
+        float nv    = hashf(vec3(s * 120.0, vStrokeSeed * 100.0, 1.0));
+        float limit = 0.4 + 0.4 * sin(s * 60.0 + vStrokeSeed * 6.28) + 0.1 * nv;
+        float damp  = sin(s * 3.14159);
+        if (prog < limit * damp) discard;
+      }
+    }
+
+    // ── Render mode (color) ────────────────────────────────────────────────
+    vec3 baseColor;
+    if (uRenderMode == 1) {
+      baseColor = mix(vColorA, vColorB, t);
+    } else if (uRenderMode == 2) {
+      baseColor = mix(vColorA, vColorB, s);
+    } else if (uRenderMode == 3) {
+      float n = vnoise(vec3(t * 8.0 + vStrokeSeed * 100.0, s * 4.0, 0.5));
+      float tp = clamp(t + (n - 0.5) * 0.9, 0.0, 1.0);
+      baseColor = mix(vColorA, vColorB, tp);
+    } else if (uRenderMode == 4) {
+      float n = vnoise(vec3(t * 8.0 + vStrokeSeed * 100.0, s * 4.0, 0.5));
+      float sp = clamp(s + (n - 0.5) * 0.9, 0.0, 1.0);
+      baseColor = mix(vColorA, vColorB, sp);
+    } else {
+      baseColor = vColorA;
+    }
+
+    // ── Brush texture alpha ────────────────────────────────────────────────
+    float alpha = texture2D(uBrushTex, vec2(s + vStrokeSeed, t)).a;
+    if (alpha < 0.02) discard;
+
+    gl_FragColor = vec4(baseColor, alpha);
+  }
+`;
+
+function rebuild3D() {
+  if (!threeScene || !analysisData) return;
+
+  // Clean up legacy stroke mesh
+  if (strokeMesh) { threeScene.remove(strokeMesh); strokeMesh.geometry.dispose(); strokeMesh = null; }
+  if (strokeShaderMat)    { strokeShaderMat.dispose();    strokeShaderMat    = null; }
+  if (strokeWireframeMat) { strokeWireframeMat.dispose(); strokeWireframeMat = null; }
+
+  // Clean up reference renderers
+  for (const sr of strokeRenderers) sr.destroy();
+  strokeRenderers = [];
+
+  const strokeType = document.getElementById('ctrl-stroke-type').value;
+  const params = getParams();
+
+  if (strokeType === 'reference') {
+    buildReferenceStrokes(generateStrokes(params), params);
+  } else {
+    const strokes = generateStrokes(params);
+    const geo = buildRibbonGeometry(strokes, params);
+    const renderMode = parseInt(document.getElementById('ctrl-render-mode').value);
+    const capStyle   = parseInt(document.getElementById('ctrl-cap-style').value);
+
+    strokeShaderMat = new THREE.ShaderMaterial({
+      vertexShader:   BRUSH_VERT,
+      fragmentShader: BRUSH_FRAG,
+      uniforms: {
+        uCullFront:  { value: 0.0 },
+        uCullBack:   { value: 0.0 },
+        uBrushTex:   { value: brushTex },
+        uRenderMode: { value: renderMode },
+        uCapStyle:   { value: capStyle },
+        uCapFrac:    { value: 0.15 },
+      },
+      transparent: true,
+      depthWrite:  false,
+      depthTest:   true,
+      side:        THREE.DoubleSide,
+    });
+    strokeWireframeMat = new THREE.MeshBasicMaterial({
+      color: 0xffffff, wireframe: true, opacity: 0.4, transparent: true,
+    });
+    const useWireframe = document.getElementById('ctrl-wireframe').checked;
+    strokeMesh = new THREE.Mesh(geo, useWireframe ? strokeWireframeMat : strokeShaderMat);
+    threeScene.add(strokeMesh);
+  }
+}
+
+function animate() {
+  animFrameId = requestAnimationFrame(animate);
+  orbitControls.update();
+  threeRenderer.render(threeScene, threeCamera);
+  fpsFrames++;
+  const now = performance.now();
+  if (now - fpsLast > 500) {
+    document.getElementById('fps-meter').textContent =
+      Math.round(fpsFrames * 1000 / (now - fpsLast)) + ' fps';
+    fpsFrames = 0; fpsLast = now;
+  }
+}
+
+// ── Color utilities ────────────────────────────────────────────────────────
+function rgbToHsl(r, g, b) {
+  const max = Math.max(r,g,b), min = Math.min(r,g,b);
+  const l = (max + min) / 2;
+  if (max === min) return [0, 0, l];
+  const d = max - min;
+  const s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+  let h;
+  if (max === r) h = ((g - b) / d + (g < b ? 6 : 0)) / 6;
+  else if (max === g) h = ((b - r) / d + 2) / 6;
+  else h = ((r - g) / d + 4) / 6;
+  return [h, s, l];
+}
+
+function hslToRgb(h, s, l) {
+  if (s === 0) return [l, l, l];
+  const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+  const p = 2 * l - q;
+  const hue2 = (t) => {
+    t = ((t % 1) + 1) % 1;
+    if (t < 1/6) return p + (q-p)*6*t;
+    if (t < 1/2) return q;
+    if (t < 2/3) return p + (q-p)*(2/3-t)*6;
+    return p;
+  };
+  return [hue2(h + 1/3), hue2(h), hue2(h - 1/3)];
+}
+
+function adjustColor(rgb, hueRotDeg, satMult, noise) {
+  let [h, s, l] = rgbToHsl(...rgb);
+  h  = h + hueRotDeg / 360 + (Math.random() - 0.5) * noise * 0.12;
+  s  = Math.min(1, Math.max(0, s * satMult + (Math.random() - 0.5) * noise * 0.25));
+  l  = Math.min(0.95, Math.max(0.05, l + (Math.random() - 0.5) * noise * 0.12));
+  return hslToRgb(h, s, l);
+}
+
+// ── Stroke generation ──────────────────────────────────────────────────────
+const STEP_SIZE = 0.007;
+
+function smoothPath(pts, passes = 3) {
+  let p = pts;
+  for (let k = 0; k < passes; k++) {
+    const q = [p[0]];
+    for (let i = 1; i < p.length - 1; i++) {
+      q.push([
+        0.5 * p[i][0] + 0.25 * (p[i-1][0] + p[i+1][0]),
+        0.5 * p[i][1] + 0.25 * (p[i-1][1] + p[i+1][1]),
+      ]);
+    }
+    q.push(p[p.length - 1]);
+    p = q;
+  }
+  return p;
+}
+
+function randn() {
+  return Math.sqrt(-2 * Math.log(Math.random() + 1e-10)) * Math.cos(2 * Math.PI * Math.random());
+}
+
+function generateStrokes(params) {
+  const { count, density, minSteps, maxSteps, coarse, fine, sharpness,
+          hueRot, satMult, colorNoise } = params;
+  const { segMask, segW, segH, origPixels, origW, origH, landmarks } = analysisData;
+  const FLOW_RES = 256;
+
+  const srcC = document.createElement('canvas');
+  srcC.width = origW; srcC.height = origH;
+  srcC.getContext('2d').putImageData(
+    new ImageData(new Uint8ClampedArray(
+      origPixels instanceof Uint8ClampedArray ? origPixels : new Uint8ClampedArray(origPixels.buffer ?? origPixels)
+    ), origW, origH), 0, 0
+  );
+  const fc = document.createElement('canvas');
+  fc.width = FLOW_RES; fc.height = FLOW_RES;
+  const fctx = fc.getContext('2d');
+  fctx.drawImage(srcC, 0, 0, FLOW_RES, FLOW_RES);
+  const fp = fctx.getImageData(0, 0, FLOW_RES, FLOW_RES).data;
+
+  const flowU = new Float32Array(FLOW_RES * FLOW_RES);
+  const flowV = new Float32Array(FLOW_RES * FLOW_RES);
+  for (let y = 1; y < FLOW_RES-1; y++) {
+    for (let x = 1; x < FLOW_RES-1; x++) {
+      const i = y*FLOW_RES + x;
+      const luma = j => fp[j*4]*0.299 + fp[j*4+1]*0.587 + fp[j*4+2]*0.114;
+      const gx = luma(i+1) - luma(i-1);
+      const gy = luma(i+FLOW_RES) - luma(i-FLOW_RES);
+      const mag = Math.sqrt(gx*gx + gy*gy) + 1e-6;
+      flowU[i] = -gy / mag;
+      flowV[i] =  gx / mag;
+    }
+  }
+
+  const featureUV = [];
+  if (landmarks) {
+    const idx = [33,133,362,263, 70,105,66,107,336,296,334,293, 1,4,5,168, 61,291,0,17,78,308, 246,466];
+    for (const i of idx) if (landmarks[i]) featureUV.push([landmarks[i].x, landmarks[i].y]);
+  }
+
+  function featureFactor(u, v) {
+    let minD2 = Infinity;
+    for (const [fu, fv] of featureUV) {
+      const d2 = (u-fu)**2 + (v-fv)**2;
+      if (d2 < minD2) minD2 = d2;
+    }
+    return Math.exp(-minD2 * 250);
+  }
+
+  function sampleSeg(u, v) {
+    if (!segMask) return 1;
+    const x = Math.max(0, Math.min(segW-1, Math.floor(u*segW)));
+    const y = Math.max(0, Math.min(segH-1, Math.floor(v*segH)));
+    return segMask[y*segW + x];
+  }
+
+  function getFlow(u, v) {
+    const x = Math.max(1, Math.min(FLOW_RES-2, Math.floor(u*FLOW_RES)));
+    const y = Math.max(1, Math.min(FLOW_RES-2, Math.floor(v*FLOW_RES)));
+    return [flowU[y*FLOW_RES + x], flowV[y*FLOW_RES + x]];
+  }
+
+  // density=1 → featureProb=0 (equal distribution); density=500 → ~99.8% near features
+  const featureProb = featureUV.length > 0 ? (density - 1) / density : 0;
+  const BASE_W = STEP_SIZE * 0.5;
+  const strokes = [];
+  let attempts = 0;
+
+  while (strokes.length < count && attempts < count * 12) {
+    attempts++;
+
+    let u0, v0;
+    if (Math.random() < featureProb) {
+      const [fu, fv] = featureUV[Math.floor(Math.random() * featureUV.length)];
+      const spread = 0.03 + Math.random() * 0.06;
+      u0 = fu + randn() * spread;
+      v0 = fv + randn() * spread;
+    } else {
+      u0 = Math.random();
+      v0 = Math.random();
+    }
+    if (u0 < 0 || u0 > 1 || v0 < 0 || v0 > 1) continue;
+    if (sampleSeg(u0, v0) === 0) continue;
+
+    const ff = featureFactor(u0, v0);
+    const detailLevel = Math.pow(ff, 1 / sharpness);
+
+    const widthScale = coarse + (fine - coarse) * detailLevel;
+    const width = BASE_W * widthScale * (0.6 + Math.random() * 0.8);
+    const steps = Math.round(maxSteps - detailLevel * 0.85 * (maxSteps - minSteps));
+
+    // Straighter strokes: much less noise, only a fixed initial direction bias
+    const noiseAmt = 0.06 + (1 - detailLevel) * 0.10 + Math.random() * 0.06;
+    const sign = Math.random() > 0.5 ? 1 : -1;
+    // Commit to a flow direction at start, deviate only slightly each step
+    const [fdu, fdv] = getFlow(u0, v0);
+    let angle = Math.atan2(fdv * sign, fdu * sign);
+
+    const uvPts = [[u0, v0]];
+    let u = u0, v = v0;
+    for (let s = 0; s < steps; s++) {
+      if (sampleSeg(u, v) === 0) break;
+      // Blend committed angle with local flow to stay straight but gently follow contours
+      const [lfu, lfv] = getFlow(u, v);
+      const localAngle = Math.atan2(lfv * sign, lfu * sign);
+      // Lerp angle toward local flow slowly (0.15), add tiny perturbation
+      let da = localAngle - angle;
+      if (da >  Math.PI) da -= 2*Math.PI;
+      if (da < -Math.PI) da += 2*Math.PI;
+      angle += da * 0.15 + (Math.random() - 0.5) * noiseAmt;
+      u += Math.cos(angle) * STEP_SIZE;
+      v += Math.sin(angle) * STEP_SIZE;
+      if (u < 0 || u > 1 || v < 0 || v > 1) break;
+      uvPts.push([u, v]);
+    }
+    if (uvPts.length < 2) continue;
+
+    const smoothed = smoothPath(uvPts, 3);
+
+    // Sample colorA from stroke start, colorB from stroke end
+    const [uA, vA] = smoothed[0];
+    const pxA = Math.max(0, Math.min(origW-1, Math.floor(uA*origW)));
+    const pyA = Math.max(0, Math.min(origH-1, Math.floor(vA*origH)));
+    const piA = (pyA*origW + pxA) * 4;
+    const colorA = adjustColor([origPixels[piA]/255, origPixels[piA+1]/255, origPixels[piA+2]/255], hueRot, satMult, colorNoise);
+
+    const [uB, vB] = smoothed[smoothed.length - 1];
+    const pxB = Math.max(0, Math.min(origW-1, Math.floor(uB*origW)));
+    const pyB = Math.max(0, Math.min(origH-1, Math.floor(vB*origH)));
+    const piB = (pyB*origW + pxB) * 4;
+    const colorB = adjustColor([origPixels[piB]/255, origPixels[piB+1]/255, origPixels[piB+2]/255], hueRot, satMult, colorNoise);
+
+    const zOffset = detailLevel * params.layerDepth * 0.005;
+    strokes.push({ uvPts: smoothed, colorA, colorB, width, zOffset });
+  }
+
+  return strokes;
+}
+
+// ── Ribbon geometry ────────────────────────────────────────────────────────
+function buildRibbonGeometry(strokes, params) {
+  const { depthValues, depthW, depthH, origW, origH } = analysisData;
+  const aspect       = origW / origH;
+  const DEPTH_SCALE  = 1.2;
+  const EPS          = 1 / 128;
+  const JITTER_SCALE = params.jitter * 0.003;
+  const MAX_DZ       = 0.08; // max depth change between consecutive stroke points
+
+  function getRawDepth(u, v) {
+    if (!depthValues) return 0.5;
+    const x = Math.max(0, Math.min(depthW-1, Math.floor(u*depthW)));
+    const y = Math.max(0, Math.min(depthH-1, Math.floor(v*depthH)));
+    return depthValues[y*depthW + x];
+  }
+
+  function surfNormal(u, v) {
+    const dzu = getRawDepth(u+EPS, v) - getRawDepth(u-EPS, v);
+    const dzv = getRawDepth(u, v+EPS) - getRawDepth(u, v-EPS);
+    const Tu = new THREE.Vector3(2*aspect*2*EPS, 0, dzu*DEPTH_SCALE);
+    const Tv = new THREE.Vector3(0, -4*EPS, dzv*DEPTH_SCALE);
+    return new THREE.Vector3().crossVectors(Tu, Tv).normalize();
+  }
+
+  const positions = [], normals = [], colorAArr = [], colorBArr = [], uvArr = [], snArr = [], seedArr = [], idxArr = [];
+  const _T = new THREE.Vector3(), _W = new THREE.Vector3();
+  const _L = new THREE.Vector3(), _R = new THREE.Vector3();
+  let vi = 0;
+
+  for (const { uvPts, colorA, colorB, width, zOffset } of strokes) {
+    const N = uvPts.length;
+    if (N < 2) continue;
+
+    // Build 3D points with depth clamping to avoid sudden drops
+    const pts3 = [];
+    let prevZ = null;
+    for (const [u, v] of uvPts) {
+      let rawZ = getRawDepth(u, v) * DEPTH_SCALE;
+      if (prevZ !== null) {
+        rawZ = Math.max(prevZ - MAX_DZ, Math.min(prevZ + MAX_DZ, rawZ));
+      }
+      prevZ = rawZ;
+      const zJitter = (Math.random() - 0.5) * JITTER_SCALE;
+      pts3.push(new THREE.Vector3(
+        (u - 0.5) * 2 * aspect,
+        (0.5 - v) * 2,
+        rawZ + zOffset + zJitter
+      ));
+    }
+
+    // Average surface normal for this stroke — used for whole-stroke back-face culling
+    const avgSN = new THREE.Vector3();
+    for (const [u, v] of uvPts) avgSN.add(surfNormal(u, v));
+    avgSN.normalize();
+    const seed = Math.random(); // random texture phase offset for this stroke
+
+    for (let i = 0; i < N; i++) {
+      const [u, v] = uvPts[i];
+
+      if      (i === 0)   _T.subVectors(pts3[1],   pts3[0]);
+      else if (i === N-1) _T.subVectors(pts3[N-1], pts3[N-2]);
+      else                _T.subVectors(pts3[i+1], pts3[i-1]);
+      _T.normalize();
+
+      const sn = surfNormal(u, v);
+      _W.crossVectors(_T, sn);
+      if (_W.lengthSq() < 1e-10) _W.set(0, 1, 0);
+      _W.normalize();
+
+      const t  = i / (N - 1);
+      const hw = width * Math.max(0.04, Math.sin(t * Math.PI));
+      _W.multiplyScalar(hw);
+
+      _L.copy(pts3[i]).sub(_W);
+      _R.copy(pts3[i]).add(_W);
+
+      positions.push(_L.x,_L.y,_L.z, _R.x,_R.y,_R.z);
+      normals.push(sn.x,sn.y,sn.z, sn.x,sn.y,sn.z);
+      colorAArr.push(colorA[0],colorA[1],colorA[2], colorA[0],colorA[1],colorA[2]);
+      colorBArr.push(colorB[0],colorB[1],colorB[2], colorB[0],colorB[1],colorB[2]);
+      uvArr.push(-1, t,  1, t);
+      snArr.push(avgSN.x,avgSN.y,avgSN.z, avgSN.x,avgSN.y,avgSN.z);
+      seedArr.push(seed, seed);
+
+      if (i < N-1) {
+        const a=vi, b=vi+1, c=vi+2, d=vi+3;
+        idxArr.push(a,b,c, b,d,c);
+      }
+      vi += 2;
+    }
+  }
+
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position',     new THREE.Float32BufferAttribute(positions,  3));
+  geo.setAttribute('normal',       new THREE.Float32BufferAttribute(normals,    3));
+  geo.setAttribute('colorA',       new THREE.Float32BufferAttribute(colorAArr,  3));
+  geo.setAttribute('colorB',       new THREE.Float32BufferAttribute(colorBArr,  3));
+  geo.setAttribute('strokeUV',     new THREE.Float32BufferAttribute(uvArr,      2));
+  geo.setAttribute('strokeNormal', new THREE.Float32BufferAttribute(snArr,      3));
+  geo.setAttribute('strokeSeed',   new THREE.Float32BufferAttribute(seedArr,    1));
+  geo.setIndex(new THREE.BufferAttribute(new Uint32Array(idxArr), 1));
+  return geo;
+}
+
+// ── Reference stroke builder ───────────────────────────────────────────────
+function buildReferenceStrokes(strokes, params) {
+  const { depthValues, depthW, depthH, origW, origH } = analysisData;
+  const aspect       = origW / origH;
+  const DEPTH_SCALE  = 1.2;
+  const EPS          = 1 / 128;
+  const JITTER_SCALE = params.jitter * 0.003;
+  const MAX_DZ       = 0.08;
+
+  function getRawDepth(u, v) {
+    if (!depthValues) return 0.5;
+    const x = Math.max(0, Math.min(depthW-1, Math.floor(u*depthW)));
+    const y = Math.max(0, Math.min(depthH-1, Math.floor(v*depthH)));
+    return depthValues[y*depthW + x];
+  }
+  function surfNormal(u, v) {
+    const dzu = getRawDepth(u+EPS, v) - getRawDepth(u-EPS, v);
+    const dzv = getRawDepth(u, v+EPS) - getRawDepth(u, v-EPS);
+    const Tu = new THREE.Vector3(2*aspect*2*EPS, 0, dzu*DEPTH_SCALE);
+    const Tv = new THREE.Vector3(0, -4*EPS, dzv*DEPTH_SCALE);
+    return new THREE.Vector3().crossVectors(Tu, Tv).normalize();
+  }
+
+  const capStyleNames = ['square', 'rounded', 'ragged'];
+  const capStyle  = capStyleNames[parseInt(document.getElementById('ctrl-cap-style').value)] || 'ragged';
+  const renderMode = parseInt(document.getElementById('ctrl-render-mode').value);
+  // render mode → gradient direction and noise mode
+  const gradDir   = (renderMode === 2 || renderMode === 4) ? 'v' : 'u';
+  const noiseModes = [0, 0, 0, 2, 3]; // flat→0, U-grad→0, V-grad→0, noise-U→2, noise-V→3
+  const noiseMode  = noiseModes[renderMode];
+
+  const _T = new THREE.Vector3();
+
+  for (const { uvPts, colorA: cA, colorB: cB, width, zOffset } of strokes) {
+    const N = uvPts.length;
+    if (N < 2) continue;
+
+    // Build 3D path with depth clamping
+    const pts3 = [];
+    let prevZ = null;
+    for (const [u, v] of uvPts) {
+      let rawZ = getRawDepth(u, v) * DEPTH_SCALE;
+      if (prevZ !== null) rawZ = Math.max(prevZ - MAX_DZ, Math.min(prevZ + MAX_DZ, rawZ));
+      prevZ = rawZ;
+      pts3.push(new THREE.Vector3(
+        (u - 0.5) * 2 * aspect,
+        (0.5 - v) * 2,
+        rawZ + zOffset + (Math.random() - 0.5) * JITTER_SCALE
+      ));
+    }
+
+    // Build widths and normals for StrokeDef
+    const widths  = [];
+    const normals = [];
+    for (let i = 0; i < N; i++) {
+      const [u, v] = uvPts[i];
+      const t = i / (N - 1);
+      widths.push(width); // flat width — cap style shader handles the end shapes
+
+      if      (i === 0)   _T.subVectors(pts3[1],   pts3[0]);
+      else if (i === N-1) _T.subVectors(pts3[N-1], pts3[N-2]);
+      else                _T.subVectors(pts3[i+1], pts3[i-1]);
+      _T.normalize();
+
+      const sn     = surfNormal(u, v);
+      const extDir = new THREE.Vector3().crossVectors(_T, sn);
+      if (extDir.lengthSq() < 1e-10) extDir.set(0, 1, 0);
+      normals.push(extDir.normalize());
+    }
+
+    const strokeDef = new StrokeDef(pts3, widths, normals);
+    const colorA = new THREE.Color().setRGB(cA[0], cA[1], cA[2]);
+    // flat mode: same color at both ends; otherwise sample end color
+    const colorB = renderMode === 0
+      ? new THREE.Color().setRGB(cA[0], cA[1], cA[2])
+      : new THREE.Color().setRGB(cB[0], cB[1], cB[2]);
+
+    const sr = new StrokeRenderer(
+      strokeDef, threeScene,
+      capStyle, colorA, colorB, gradDir,
+      null, 1.0, 0.0,        // no texture
+      4.0, 3, 0.6, noiseMode // noise params
+    );
+    strokeRenderers.push(sr);
+  }
+}
+
+// ── Settings overlay ──────────────────────────────────────────────────────
+function openSettings()  {
+  document.getElementById('settings-overlay').classList.add('open');
+  document.getElementById('settings-backdrop').classList.add('open');
+}
+function closeSettings() {
+  document.getElementById('settings-overlay').classList.remove('open');
+  document.getElementById('settings-backdrop').classList.remove('open');
+}
+document.getElementById('btn-settings').addEventListener('click', openSettings);
+document.getElementById('btn-settings-close').addEventListener('click', closeSettings);
+document.getElementById('settings-backdrop').addEventListener('click', closeSettings);
+
+// ── Collapsible ctrl-sections ─────────────────────────────────────────────
+document.querySelectorAll('.ctrl-section-label').forEach(label => {
+  const icon = document.createElement('span');
+  icon.className = 'material-icons';
+  icon.textContent = 'expand_less';
+  label.appendChild(icon);
+  label.addEventListener('click', () => {
+    label.closest('.ctrl-section').classList.toggle('collapsed');
+  });
+});
+
+// ── boot ──────────────────────────────────────────────────────────────────
+initModels();
+refreshLoadSelect();
+</script>
+</body>
+</html>
