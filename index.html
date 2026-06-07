@@ -56,7 +56,7 @@
       margin-left: auto;
       font-size: 0.62rem;
       font-weight: 300;
-      color: #ccc;
+      color: #111;
       letter-spacing: 0.01em;
       white-space: nowrap;
     }
@@ -196,8 +196,7 @@
     .panel-title {
       font-size: 0.65rem;
       font-weight: 600;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
+      letter-spacing: 0.03em;
       color: #bbb;
       padding: 10px 14px 8px;
       background: #fff;
@@ -259,8 +258,7 @@
     .ctrl-section-label {
       font-size: 0.58rem;
       font-weight: 700;
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
+      letter-spacing: 0.03em;
       color: #ccc;
       width: 100%;
       margin-bottom: -4px;
@@ -331,7 +329,7 @@
     }
     .settings-hdr-title {
       font-size: 0.65rem; font-weight: 700;
-      letter-spacing: 0.12em; text-transform: uppercase; color: #aaa;
+      letter-spacing: 0.03em; color: #aaa;
     }
 
     .settings-body {
@@ -1030,6 +1028,15 @@ async function autoLoadLatest() {
       origW: d.origW, origH: d.origH,
     };
     currentImageName = name;
+
+    // Reconstruct and show the original image from saved pixels
+    const origC = document.createElement('canvas');
+    origC.width = d.origW; origC.height = d.origH;
+    origC.getContext('2d').putImageData(
+      new ImageData(new Uint8ClampedArray(analysisData.origPixels.buffer), d.origW, d.origH), 0, 0
+    );
+    const restoredImg = await loadImageElement(origC.toDataURL());
+    showOriginal(restoredImg);
 
     renderSegCanvas();
     renderDepthCanvas();
