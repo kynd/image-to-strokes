@@ -34,7 +34,7 @@
 
     header {
       width: 100%;
-      max-width: 960px;
+      max-width: 1050px;
       display: flex;
       align-items: center;
       gap: 24px;
@@ -51,6 +51,33 @@
     }
 
     .tabs { display: flex; gap: 4px; }
+
+    .docs-link {
+      font-size: 0.72rem;
+      font-weight: 400;
+      color: #aaa;
+      text-decoration: none;
+      border: 1px solid #e0e0e0;
+      padding: 4px 11px;
+      border-radius: 5px;
+      white-space: nowrap;
+      transition: border-color 0.15s, color 0.15s;
+    }
+    .docs-link:hover { border-color: #999; color: #111; }
+    #btn-settings {
+      font-size: 0.72rem;
+      font-weight: 400;
+      color: #aaa;
+      background: none;
+      border: 1px solid #e0e0e0;
+      padding: 4px 11px;
+      border-radius: 5px;
+      cursor: pointer;
+      font-family: 'Sora', sans-serif;
+      white-space: nowrap;
+      transition: border-color 0.15s, color 0.15s;
+    }
+    #btn-settings:hover { border-color: #999; color: #111; }
 
     .privacy-note {
       margin-left: auto;
@@ -79,7 +106,7 @@
 
     .toolbar {
       width: 100%;
-      max-width: 960px;
+      max-width: 1050px;
       display: flex;
       align-items: center;
       gap: 8px;
@@ -157,7 +184,7 @@
     #load-go:hover:not(:disabled) { background: #f5f5f5; color: #111; }
     #load-go:disabled { color: #ccc; cursor: not-allowed; }
 
-    .progress-wrap { flex: 1; display: flex; align-items: center; gap: 10px; min-width: 0; }
+    .progress-wrap { flex: 0 1 160px; display: flex; align-items: center; gap: 10px; min-width: 0; }
     .progress-bar  { flex: 1; height: 1px; background: #ebebeb; min-width: 30px; }
     .progress-fill { height: 1px; background: #111; width: 0%; transition: width 0.4s ease; }
     #status {
@@ -171,7 +198,7 @@
       display: flex;
       align-items: center;
       gap: 4px;
-      flex-shrink: 0;
+      flex: 1;
     }
 
     .tab-panel { width: 100%; max-width: 960px; }
@@ -197,11 +224,43 @@
       font-size: 0.65rem;
       font-weight: 600;
       letter-spacing: 0.03em;
-      color: #bbb;
-      padding: 10px 14px 8px;
+      color: #111;
+      padding: 8px 14px 7px;
       background: #fff;
       border-bottom: 1px solid #ebebeb;
     }
+    .panel-title-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .panel-indicator {
+      font-size: 0.6rem;
+      font-weight: 300;
+      color: #bbb;
+      margin-top: 3px;
+      letter-spacing: 0.01em;
+      min-height: 0.85em;
+    }
+    .panel-indicator.ok     { color: #5aad5a; }
+    .panel-indicator.fail   { color: #c77; }
+    .panel-indicator.ignored { color: #c77; font-style: italic; }
+    .ignore-btn {
+      background: none;
+      border: 1px solid #e0e0e0;
+      border-radius: 3px;
+      font-family: 'Sora', sans-serif;
+      font-size: 0.58rem;
+      font-weight: 500;
+      color: #ccc;
+      padding: 2px 7px;
+      cursor: pointer;
+      letter-spacing: 0.02em;
+      flex-shrink: 0;
+      transition: border-color 0.15s, color 0.15s, background 0.15s;
+    }
+    .ignore-btn:hover { border-color: #aaa; color: #666; }
+    .ignore-btn.active { background: #fef0f0; border-color: #c77; color: #c77; }
     .panel canvas, .panel img { width: 100%; height: auto; display: block; }
     .panel .placeholder {
       width: 100%;
@@ -215,16 +274,132 @@
       letter-spacing: 0.05em;
     }
 
+    /* ── Main merged view ───────────────────────────────────────────────────── */
+    .main-view {
+      width: 100%;
+      max-width: 1050px;
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+    }
+
     /* 3D panel */
     #three-wrap {
       position: relative;
-      width: 100%;
-      max-width: min(100%, 80vh); /* keep square canvas on screen */
-      aspect-ratio: 1 / 1; /* overridden by JS setCanvasSize */
+      flex: 0 0 auto;
+      width: min(65vh, calc(100% - 250px - 12px));
+      aspect-ratio: 1 / 1;
       background: #0d0d0d;
       border-radius: 8px;
       overflow: hidden;
-      margin-bottom: 16px;
+    }
+
+    /* ── Analysis sidebar ───────────────────────────────────────────────────── */
+    .analysis-sidebar {
+      flex: 1;
+      min-width: 200px;
+      align-self: stretch;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      position: relative; /* for zoom-preview absolute positioning */
+    }
+
+    .analysis-row {
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      border: 1px solid #ebebeb;
+      border-radius: 7px;
+      background: #fafafa;
+      overflow: hidden;
+    }
+
+    .thumb-wrap {
+      aspect-ratio: 1 / 1;
+      flex-shrink: 0;
+      min-width: 0;
+      align-self: stretch;
+      position: relative;
+      background: #1a1a1a;
+      cursor: pointer;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .thumb-wrap canvas,
+    .thumb-wrap img {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      display: block;
+    }
+    .thumb-wrap .placeholder {
+      font-size: 0.5rem;
+      color: #444;
+      text-align: center;
+      padding: 4px;
+      line-height: 1.3;
+    }
+    .thumb-wrap:hover { background: #222; }
+
+    .analysis-meta {
+      flex: 1;
+      min-width: 0;
+      padding: 7px 9px 6px;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      overflow: hidden;
+    }
+    .analysis-name {
+      font-size: 0.65rem;
+      font-weight: 600;
+      color: #111;
+      letter-spacing: 0.02em;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      text-decoration: none;
+    }
+    a.analysis-name:hover {
+      color: #555;
+      text-decoration: underline;
+      text-decoration-thickness: 1px;
+      text-underline-offset: 2px;
+    }
+    .analysis-meta .panel-indicator {
+      margin-top: 0;
+      font-size: 0.58rem;
+      line-height: 1.4;
+      flex: 1;
+    }
+    .analysis-meta .ignore-btn {
+      align-self: flex-start;
+      margin-top: auto;
+    }
+
+    /* ── Zoom preview ───────────────────────────────────────────────────────── */
+    .zoom-preview {
+      position: absolute;
+      right: calc(100% + 10px);
+      top: 0;
+      width: 320px;
+      display: none;
+      pointer-events: none;
+      z-index: 50;
+    }
+    .zoom-preview.visible { display: block; }
+    .zoom-preview img {
+      width: 100%;
+      height: auto;
+      display: block;
+      border-radius: 7px;
+      box-shadow: 0 6px 32px rgba(0,0,0,0.22);
+      background: #111;
     }
     #three-canvas { width: 100% !important; height: 100% !important; display: block; }
     #fps-meter {
@@ -401,10 +576,6 @@
 
 <header>
   <h1>Image to Strokes</h1>
-  <nav class="tabs">
-    <button class="tab-btn active" data-tab="analyze">Analyze</button>
-    <button class="tab-btn" data-tab="3d" id="tab-3d" disabled>3D View</button>
-  </nav>
   <span class="privacy-note">All processing happens locally in your browser — no data is uploaded or shared.</span>
 </header>
 
@@ -424,54 +595,100 @@
       <select id="load-select" disabled><option value="">Load…</option></select>
       <button id="load-go" disabled>↑</button>
     </div>
-    <button id="btn-settings" class="icon-btn" title="3D Settings">
-      <span class="material-icons">tune</span>
-    </button>
+    <a class="docs-link" href="docs.html" target="_blank" rel="noopener" style="margin-left:auto">Documentation</a>
+    <button id="btn-settings">3D Model Settings</button>
   </div>
 </div>
 
-<div class="tab-panel" id="panel-analyze">
-  <div class="grid">
-    <div class="panel">
-      <div class="panel-title">Original</div>
-      <div class="placeholder" id="orig-placeholder">no image</div>
-      <img id="orig-img" style="display:none" alt="original" />
-    </div>
-    <div class="panel">
-      <div class="panel-title">Segmentation</div>
-      <div class="placeholder" id="seg-placeholder">run analyze</div>
-      <canvas id="seg-canvas" style="display:none"></canvas>
-    </div>
-    <div class="panel">
-      <div class="panel-title">Depth Map</div>
-      <div class="placeholder" id="depth-placeholder">run analyze</div>
-      <canvas id="depth-canvas" style="display:none"></canvas>
-    </div>
-    <div class="panel">
-      <div class="panel-title">Face Landmarks</div>
-      <div class="placeholder" id="lm-placeholder">run analyze</div>
-      <canvas id="lm-canvas" style="display:none"></canvas>
-    </div>
-    <div class="panel">
-      <div class="panel-title">Edge Saliency</div>
-      <div class="placeholder" id="edge-placeholder">run analyze</div>
-      <canvas id="edge-canvas" style="display:none"></canvas>
-    </div>
-    <div class="panel">
-      <div class="panel-title">Subject Regions</div>
-      <div class="placeholder" id="subject-placeholder">run analyze</div>
-      <canvas id="subject-canvas" style="display:none"></canvas>
-    </div>
-  </div>
-  <div id="analysis-report" hidden></div>
-</div>
+<div class="main-view">
 
-<div class="tab-panel" id="panel-3d" hidden>
+  <!-- 3D canvas -->
   <div id="three-wrap">
     <canvas id="three-canvas"></canvas>
     <div id="fps-meter">-- fps</div>
   </div>
+
+  <!-- Analysis sidebar -->
+  <div class="analysis-sidebar">
+
+    <div class="analysis-row">
+      <div class="thumb-wrap">
+        <div class="placeholder" id="orig-placeholder">no image</div>
+        <img id="orig-img" style="display:none" alt="original" />
+      </div>
+      <div class="analysis-meta">
+        <a class="analysis-name" href="docs.html#original" target="_blank" rel="noopener">Original</a>
+        <div class="panel-indicator">color source</div>
+      </div>
+    </div>
+
+    <div class="analysis-row">
+      <div class="thumb-wrap">
+        <div class="placeholder" id="seg-placeholder">analyzing…</div>
+        <canvas id="seg-canvas" style="display:none"></canvas>
+      </div>
+      <div class="analysis-meta">
+        <a class="analysis-name" href="docs.html#segmentation" target="_blank" rel="noopener">Segmentation</a>
+        <div class="panel-indicator" id="ind-seg"></div>
+        <button class="ignore-btn" data-key="segmentation">ignore</button>
+      </div>
+    </div>
+
+    <div class="analysis-row">
+      <div class="thumb-wrap">
+        <div class="placeholder" id="depth-placeholder">analyzing…</div>
+        <canvas id="depth-canvas" style="display:none"></canvas>
+      </div>
+      <div class="analysis-meta">
+        <a class="analysis-name" href="docs.html#depth" target="_blank" rel="noopener">Depth Map</a>
+        <div class="panel-indicator" id="ind-depth"></div>
+        <button class="ignore-btn" data-key="depth">ignore</button>
+      </div>
+    </div>
+
+    <div class="analysis-row">
+      <div class="thumb-wrap">
+        <div class="placeholder" id="lm-placeholder">analyzing…</div>
+        <canvas id="lm-canvas" style="display:none"></canvas>
+      </div>
+      <div class="analysis-meta">
+        <a class="analysis-name" href="docs.html#face-landmarks" target="_blank" rel="noopener">Face Landmarks</a>
+        <div class="panel-indicator" id="ind-lm"></div>
+        <button class="ignore-btn" data-key="faceLandmarks">ignore</button>
+      </div>
+    </div>
+
+    <div class="analysis-row">
+      <div class="thumb-wrap">
+        <div class="placeholder" id="edge-placeholder">analyzing…</div>
+        <canvas id="edge-canvas" style="display:none"></canvas>
+      </div>
+      <div class="analysis-meta">
+        <a class="analysis-name" href="docs.html#edge-saliency" target="_blank" rel="noopener">Edge Saliency</a>
+        <div class="panel-indicator" id="ind-edge"></div>
+      </div>
+    </div>
+
+    <div class="analysis-row">
+      <div class="thumb-wrap">
+        <div class="placeholder" id="subject-placeholder">analyzing…</div>
+        <canvas id="subject-canvas" style="display:none"></canvas>
+      </div>
+      <div class="analysis-meta">
+        <a class="analysis-name" href="docs.html#subject-regions" target="_blank" rel="noopener">Subject Regions</a>
+        <div class="panel-indicator" id="ind-subject"></div>
+        <button class="ignore-btn" data-key="colorRegions">ignore</button>
+      </div>
+    </div>
+
+    <!-- zoom preview (positioned absolute, to the left of sidebar) -->
+    <div class="zoom-preview" id="zoom-preview">
+      <img id="zoom-img" alt="" />
+    </div>
+
+  </div>
 </div>
+
 
 <!-- ── Settings overlay ──────────────────────────────────────────────────── -->
 <div id="settings-backdrop" class="settings-backdrop"></div>
@@ -489,8 +706,8 @@
       <span class="ctrl-section-label">Strokes</span>
       <div class="ctrl-group">
         <label>Count</label>
-        <input type="range" id="ctrl-count" min="1" max="30000" value="2000" step="1" />
-        <input type="number" class="ctrl-val" id="val-count" value="2000" />
+        <input type="range" id="ctrl-count" min="1" max="5000" value="800" step="1" />
+        <input type="number" class="ctrl-val" id="val-count" value="800" />
       </div>
       <div class="ctrl-group">
         <label>Density ratio</label>
@@ -514,8 +731,8 @@
       <span class="ctrl-section-label">Size &amp; Layering</span>
       <div class="ctrl-group">
         <label>Large width</label>
-        <input type="range" id="ctrl-coarse" min="1" max="50" value="20" step="1" />
-        <input type="number" class="ctrl-val" id="val-coarse" value="20" />
+        <input type="range" id="ctrl-coarse" min="1" max="50" value="50" step="1" />
+        <input type="number" class="ctrl-val" id="val-coarse" value="50" />
       </div>
       <div class="ctrl-group">
         <label>Fine width</label>
@@ -652,6 +869,8 @@ let currentImageElement = null;
 let currentImageName    = 'portrait'; // used as default save filename
 let analysisData = null;
 
+const userIgnored = { segmentation: false, depth: false, faceLandmarks: false, colorRegions: false };
+
 const btn        = document.getElementById('analyze-btn');
 const saveBtn    = document.getElementById('save-btn');
 const loadSelect = document.getElementById('load-select');
@@ -665,23 +884,6 @@ function setStatus(msg, pct) {
   if (pct !== undefined) progressEl.style.width = pct + '%';
   console.log('[status]', msg);
 }
-
-// ── tab switching ──────────────────────────────────────────────────────────
-document.querySelectorAll('.tab-btn').forEach(tab => {
-  tab.addEventListener('click', () => {
-    if (tab.disabled) return;
-    document.querySelectorAll('.tab-btn').forEach(t => t.classList.remove('active'));
-    document.querySelectorAll('.tab-panel').forEach(p => { p.hidden = true; });
-    tab.classList.add('active');
-    document.getElementById('panel-' + tab.dataset.tab).hidden = false;
-    if (tab.dataset.tab === '3d') {
-      if (!threeRenderer) init3DView();
-      else { resumeAnimation(); if (threeDirty) { threeDirty = false; rebuild3D(); } }
-    } else {
-      pauseAnimation();
-    }
-  });
-});
 
 // ── model init ─────────────────────────────────────────────────────────────
 async function initModels() {
@@ -741,15 +943,10 @@ async function initModels() {
   await loadDefaultImage();
   btn.disabled = false;
 
-  const loaded = await autoLoadLatest();
-  if (!loaded) {
-    if (currentImageElement) {
-      await analyzeCurrentImage();
-    } else {
-      setStatus('Ready. Upload an image to begin.', 100);
-    }
+  if (currentImageElement) {
+    await analyzeCurrentImage();
   } else {
-    setStatus('Loaded saved analysis — ready.', 100);
+    setStatus('Ready. Upload an image to begin.', 100);
   }
 }
 
@@ -794,9 +991,8 @@ fileInput.addEventListener('change', async (e) => {
   ['seg-placeholder','depth-placeholder','lm-placeholder','edge-placeholder','subject-placeholder'].forEach(id =>
     document.getElementById(id).style.display = 'flex'
   );
-  document.getElementById('analysis-report').hidden = true;
+  // analysis-report element removed
   analysisData = null;
-  document.getElementById('tab-3d').disabled = true;
   saveBtn.disabled = true;
   await analyzeCurrentImage();
 });
@@ -843,7 +1039,8 @@ async function analyzeCurrentImage() {
   setStatus('Done.', 100);
   btn.disabled = false;
   saveBtn.disabled = false;
-  document.getElementById('tab-3d').disabled = false;
+  updatePanelIndicators();
+  if (threeRenderer) rebuild3D();
 }
 
 btn.addEventListener('click', () => analyzeCurrentImage());
@@ -972,11 +1169,9 @@ async function loadAnalysis(name) {
     renderAnalysisReport();
 
     saveBtn.disabled = false;
-    document.getElementById('tab-3d').disabled = false;
     setStatus(`Loaded "${name}" — ready.`, 100);
-
-    if (!document.getElementById('panel-3d').hidden) rebuild3D();
-    else threeDirty = true;
+    updatePanelIndicators();
+    if (threeRenderer) rebuild3D();
 
   } catch (e) {
     setStatus('Load failed: ' + e.message);
@@ -1049,8 +1244,7 @@ async function autoLoadLatest() {
     renderAnalysisReport();
 
     saveBtn.disabled = false;
-    document.getElementById('tab-3d').disabled = false;
-    threeDirty = true;
+    if (threeRenderer) rebuild3D();
     return true;
   } catch {
     return false;
@@ -1968,8 +2162,37 @@ function buildAnalysisQuality() {
   return q;
 }
 
+function updatePanelIndicators() {
+  const q = analysisData && analysisData._quality;
+  const defs = [
+    { id: 'ind-seg',     key: 'segmentation',  qdata: q && q.segmentation },
+    { id: 'ind-depth',   key: 'depth',          qdata: q && q.depth },
+    { id: 'ind-lm',      key: 'faceLandmarks',  qdata: q && q.faceLandmarks },
+    { id: 'ind-edge',    key: null,             qdata: q && q.edgeSaliency },
+    { id: 'ind-subject', key: 'colorRegions',   qdata: q && q.colorRegions },
+  ];
+  for (const { id, key, qdata } of defs) {
+    const el = document.getElementById(id);
+    if (!el) continue;
+    if (key && userIgnored[key]) {
+      el.textContent = 'ignored';
+      el.className = 'panel-indicator ignored';
+    } else if (!qdata) {
+      el.textContent = '';
+      el.className = 'panel-indicator';
+    } else if (qdata.available) {
+      el.textContent = qdata.influence;
+      el.className = 'panel-indicator ok';
+    } else {
+      el.textContent = qdata.reason || 'unavailable';
+      el.className = 'panel-indicator fail';
+    }
+  }
+}
+
 function renderAnalysisReport() {
   const report = document.getElementById('analysis-report');
+  if (!report) return;
   const q = analysisData && analysisData._quality;
   if (!q) { report.hidden = true; return; }
   report.hidden = false;
@@ -2020,7 +2243,7 @@ function generateStrokes(params) {
   const { segMask, segW, segH, origPixels, origW, origH, landmarks,
           subjectMap, subjectW, subjectH, focusPoints } = analysisData;
   const quality = analysisData._quality || buildAnalysisQuality();
-  const useSegMask = quality.segmentation.available;
+  const useSegMask = quality.segmentation.available && !userIgnored.segmentation;
   const FLOW_RES = 256;
 
   const srcC = document.createElement('canvas');
@@ -2051,12 +2274,12 @@ function generateStrokes(params) {
   }
 
   const featureUV = [];
-  if (landmarks) {
+  if (landmarks && !userIgnored.faceLandmarks) {
     const idx = [33,133,362,263, 70,105,66,107,336,296,334,293, 1,4,5,168, 61,291,0,17,78,308, 246,466];
     for (const i of idx) if (landmarks[i]) featureUV.push([landmarks[i].x, landmarks[i].y]);
   }
   // Fallback: use color region focus points when no face landmarks available
-  if (featureUV.length === 0 && focusPoints && focusPoints.length > 0) {
+  if (featureUV.length === 0 && focusPoints && focusPoints.length > 0 && !userIgnored.colorRegions) {
     featureUV.push(...focusPoints);
   }
 
@@ -2111,7 +2334,7 @@ function generateStrokes(params) {
     if (u0 < 0 || u0 > 1 || v0 < 0 || v0 > 1) continue;
     if (sampleSeg(u0, v0) === 0) continue;
     // When segmentation isn't usable, probabilistically filter by color subject map
-    if (!useSegMask && subjectMap && Math.random() > sampleSubjectProb(u0, v0)) continue;
+    if (!useSegMask && subjectMap && !userIgnored.colorRegions && Math.random() > sampleSubjectProb(u0, v0)) continue;
 
     const ff = featureFactor(u0, v0);
     const detailLevel = Math.pow(ff, 1 / sharpness);
@@ -2178,13 +2401,14 @@ function buildRibbonGeometry(strokes, params) {
   const MAX_DZ       = 0.08; // max depth change between consecutive stroke points
 
   function getRawDepth(u, v) {
-    if (!depthValues) return 0.5;
+    if (!depthValues || userIgnored.depth) return 0.5;
     const x = Math.max(0, Math.min(depthW-1, Math.floor(u*depthW)));
     const y = Math.max(0, Math.min(depthH-1, Math.floor(v*depthH)));
     return depthValues[y*depthW + x];
   }
 
   function surfNormal(u, v) {
+    if (userIgnored.depth) return new THREE.Vector3(0, 0, 1);
     const dzu = getRawDepth(u+EPS, v) - getRawDepth(u-EPS, v);
     const dzv = getRawDepth(u, v+EPS) - getRawDepth(u, v-EPS);
     const Tu = new THREE.Vector3(2*aspect*2*EPS, 0, dzu*DEPTH_SCALE);
@@ -2383,7 +2607,43 @@ document.querySelectorAll('.ctrl-section-label').forEach(label => {
   });
 });
 
+// ── Ignore toggles ────────────────────────────────────────────────────────
+document.querySelectorAll('.ignore-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const key = btn.dataset.key;
+    userIgnored[key] = !userIgnored[key];
+    btn.classList.toggle('active', userIgnored[key]);
+    updatePanelIndicators();
+    if (threeRenderer) rebuild3D();
+  });
+});
+
+// ── Thumb zoom preview ────────────────────────────────────────────────────
+const zoomPreview = document.getElementById('zoom-preview');
+const zoomImg     = document.getElementById('zoom-img');
+
+document.querySelectorAll('.thumb-wrap').forEach(wrap => {
+  wrap.addEventListener('mouseenter', () => {
+    const canvas = wrap.querySelector('canvas');
+    const img    = wrap.querySelector('img');
+    let src = null;
+    if (canvas && canvas.style.display !== 'none' && canvas.width > 0) {
+      src = canvas.toDataURL();
+    } else if (img && img.style.display !== 'none' && img.src) {
+      src = img.src;
+    }
+    if (!src) return;
+    zoomImg.src = src;
+    const rowRect     = wrap.closest('.analysis-row').getBoundingClientRect();
+    const sidebarRect = wrap.closest('.analysis-sidebar').getBoundingClientRect();
+    zoomPreview.style.top = (rowRect.top - sidebarRect.top) + 'px';
+    zoomPreview.classList.add('visible');
+  });
+  wrap.addEventListener('mouseleave', () => zoomPreview.classList.remove('visible'));
+});
+
 // ── boot ──────────────────────────────────────────────────────────────────
+init3DView();
 initModels();
 refreshLoadSelect();
 </script>

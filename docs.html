@@ -1,0 +1,783 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Image to Strokes — Documentation</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@100..800&display=swap" rel="stylesheet">
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #fff;
+      color: #111;
+      font-family: 'Sora', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 48px 24px 80px;
+    }
+
+    header {
+      width: 100%;
+      max-width: 720px;
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      border-bottom: 1px solid #e8e8e8;
+      padding-bottom: 20px;
+      margin-bottom: 52px;
+    }
+
+    .header-title {
+      font-size: 1rem;
+      font-weight: 500;
+      letter-spacing: 0.01em;
+      color: #111;
+      white-space: nowrap;
+      text-decoration: none;
+    }
+
+    .header-sep {
+      font-size: 0.8rem;
+      color: #ccc;
+    }
+
+    .header-page {
+      font-size: 0.8rem;
+      font-weight: 400;
+      color: #999;
+    }
+
+    .back-link {
+      margin-left: auto;
+      font-size: 0.72rem;
+      font-weight: 400;
+      color: #999;
+      text-decoration: none;
+      white-space: nowrap;
+      border: 1px solid #e0e0e0;
+      padding: 5px 12px;
+      border-radius: 5px;
+      transition: border-color 0.15s, color 0.15s;
+    }
+    .back-link:hover { border-color: #999; color: #111; }
+
+    article {
+      width: 100%;
+      max-width: 720px;
+    }
+
+    /* Section headings */
+    h2 {
+      font-size: 0.65rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      color: #bbb;
+      text-transform: uppercase;
+      margin-bottom: 16px;
+      margin-top: 52px;
+    }
+    h2:first-child { margin-top: 0; }
+
+    h3 {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: #222;
+      margin-bottom: 6px;
+      margin-top: 24px;
+    }
+    h3:first-child { margin-top: 0; }
+
+    p {
+      font-size: 0.82rem;
+      font-weight: 300;
+      color: #444;
+      line-height: 1.7;
+      margin-bottom: 12px;
+    }
+    p:last-child { margin-bottom: 0; }
+
+    /* Intro block */
+    .lead {
+      font-size: 0.95rem;
+      font-weight: 300;
+      color: #555;
+      line-height: 1.75;
+      margin-bottom: 0;
+    }
+
+    /* Cards grid */
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+      margin-top: 4px;
+    }
+    @media (max-width: 520px) { .cards { grid-template-columns: 1fr; } }
+
+    .card {
+      background: #fafafa;
+      border: 1px solid #ebebeb;
+      border-radius: 8px;
+      padding: 16px 18px;
+    }
+    .card-label {
+      font-size: 0.62rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      color: #bbb;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+    .card-title {
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: #222;
+      margin-bottom: 6px;
+    }
+    .card p {
+      font-size: 0.76rem;
+      color: #666;
+      line-height: 1.6;
+      margin-bottom: 0;
+    }
+
+    /* Step list */
+    .steps {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+      border: 1px solid #ebebeb;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    .steps li {
+      display: flex;
+      align-items: flex-start;
+      gap: 16px;
+      padding: 14px 18px;
+      border-bottom: 1px solid #f0f0f0;
+    }
+    .steps li:last-child { border-bottom: none; }
+
+    .step-num {
+      font-size: 0.62rem;
+      font-weight: 700;
+      color: #ccc;
+      width: 20px;
+      flex-shrink: 0;
+      padding-top: 2px;
+      text-align: right;
+    }
+    .step-body { flex: 1; }
+    .step-body strong {
+      display: block;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: #222;
+      margin-bottom: 3px;
+    }
+    .step-body span {
+      font-size: 0.76rem;
+      font-weight: 300;
+      color: #666;
+      line-height: 1.6;
+    }
+
+    /* Parameter table */
+    .param-block {
+      border: 1px solid #ebebeb;
+      border-radius: 8px;
+      overflow: hidden;
+      margin-top: 4px;
+    }
+    .param-section-title {
+      font-size: 0.58rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      color: #bbb;
+      text-transform: uppercase;
+      padding: 10px 16px 8px;
+      background: #fff;
+      border-bottom: 1px solid #ebebeb;
+    }
+    .param-row {
+      display: flex;
+      gap: 16px;
+      padding: 11px 16px;
+      border-bottom: 1px solid #f0f0f0;
+      align-items: baseline;
+    }
+    .param-row:last-child { border-bottom: none; }
+    .param-name {
+      font-size: 0.76rem;
+      font-weight: 600;
+      color: #333;
+      width: 130px;
+      flex-shrink: 0;
+    }
+    .param-range {
+      font-size: 0.68rem;
+      font-weight: 400;
+      color: #aaa;
+      white-space: nowrap;
+      width: 70px;
+      flex-shrink: 0;
+    }
+    .param-desc {
+      font-size: 0.76rem;
+      font-weight: 300;
+      color: #555;
+      line-height: 1.55;
+    }
+
+    /* Analysis quality dots */
+    .analysis-list {
+      border: 1px solid #ebebeb;
+      border-radius: 8px;
+      overflow: hidden;
+      margin-top: 4px;
+    }
+    .analysis-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 12px 16px;
+      border-bottom: 1px solid #f0f0f0;
+    }
+    .analysis-item:last-child { border-bottom: none; }
+    .dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      flex-shrink: 0; margin-top: 5px;
+    }
+    .dot.green  { background: #5aad5a; }
+    .dot.blue   { background: #4a9fd4; }
+    .dot.purple { background: #9b7cd4; }
+    .dot.amber  { background: #d4a24a; }
+    .dot.teal   { background: #4ab8a4; }
+    .analysis-body { flex: 1; }
+    .analysis-name {
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: #222;
+      margin-bottom: 3px;
+    }
+    .analysis-desc {
+      font-size: 0.74rem;
+      font-weight: 300;
+      color: #666;
+      line-height: 1.55;
+    }
+
+    /* Tech stack pills */
+    .tech-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 4px;
+    }
+    .tech-pill {
+      font-size: 0.72rem;
+      font-weight: 400;
+      color: #555;
+      border: 1px solid #e0e0e0;
+      border-radius: 20px;
+      padding: 4px 12px;
+    }
+
+    /* Privacy / note box */
+    .note-box {
+      background: #fafafa;
+      border: 1px solid #ebebeb;
+      border-radius: 8px;
+      padding: 16px 18px;
+      margin-top: 4px;
+    }
+    .note-box p {
+      font-size: 0.78rem;
+      color: #555;
+      line-height: 1.65;
+      margin-bottom: 0;
+    }
+
+    /* Divider */
+    .divider {
+      width: 100%;
+      height: 1px;
+      background: #f0f0f0;
+      margin: 0;
+    }
+
+    code {
+      font-family: 'SF Mono', 'Fira Code', monospace;
+      font-size: 0.78rem;
+      background: #f4f4f4;
+      border-radius: 3px;
+      padding: 1px 5px;
+      color: #333;
+    }
+
+    pre {
+      background: #f7f7f7;
+      border: 1px solid #ebebeb;
+      border-radius: 7px;
+      padding: 14px 16px;
+      overflow-x: auto;
+      margin-top: 8px;
+    }
+    pre code {
+      background: none;
+      padding: 0;
+      font-size: 0.76rem;
+      color: #333;
+      line-height: 1.6;
+    }
+
+    footer {
+      width: 100%;
+      max-width: 720px;
+      margin-top: 64px;
+      padding-top: 20px;
+      border-top: 1px solid #f0f0f0;
+      font-size: 0.65rem;
+      font-weight: 300;
+      color: #ccc;
+      letter-spacing: 0.02em;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <a class="header-title" href="index.html">Image to Strokes</a>
+  <span class="header-sep">/</span>
+  <span class="header-page">Documentation</span>
+  <a class="back-link" href="index.html">← Open app</a>
+</header>
+
+<article>
+
+  <!-- ── Overview ─────────────────────────────────────────────────────────── -->
+  <h2>Overview</h2>
+  <p class="lead">
+    Image to Strokes turns any photograph into an interactive 3D brushstroke painting.
+    It runs entirely in your browser — no server, no uploads, no accounts.
+  </p>
+
+  <!-- ── How it works ──────────────────────────────────────────────────────── -->
+  <h2>How it works</h2>
+  <p>
+    The app runs a short analysis pipeline on your image, then uses the combined data to
+    place and orient brushstrokes in 3D space. Each step feeds information to the stroke
+    generator, so the result adapts to what the image actually contains.
+  </p>
+
+  <div class="cards" style="margin-top:16px;">
+    <div class="card">
+      <div class="card-label">Step 1</div>
+      <div class="card-title">Upload &amp; Analyze</div>
+      <p>Upload any photo. Five analyses run automatically: depth estimation, person segmentation, face landmarks, edge saliency, and color region detection. A status bar tracks progress.</p>
+    </div>
+    <div class="card">
+      <div class="card-label">Step 2</div>
+      <div class="card-title">3D Painting</div>
+      <p>The 3D brushstroke result appears immediately beside the analysis panel. Orbit freely with mouse or touch. Each analysis thumbnail on the right shows what was detected — hover to enlarge.</p>
+    </div>
+    <div class="card">
+      <div class="card-label">Step 3</div>
+      <div class="card-title">Adjust</div>
+      <p>Open the settings panel (tune icon) to adjust stroke count, size, color, render mode, and more. Changes rebuild the painting in real time. Toggle off any analysis that failed or isn't useful.</p>
+    </div>
+    <div class="card">
+      <div class="card-label">Step 4</div>
+      <div class="card-title">Export</div>
+      <p>Save the canvas as PNG or JPG from the Canvas section in settings. The output image matches the canvas resolution you set, not the screen size.</p>
+    </div>
+  </div>
+
+  <!-- ── Getting started ──────────────────────────────────────────────────── -->
+  <h2>Getting started</h2>
+  <ol class="steps">
+    <li>
+      <span class="step-num">1</span>
+      <div class="step-body">
+        <strong>Wait for model loading</strong>
+        <span>On first visit, three AI models are downloaded from public CDNs and cached locally. This takes 10–30 seconds depending on your connection. The status bar shows progress.</span>
+      </div>
+    </li>
+    <li>
+      <span class="step-num">2</span>
+      <div class="step-body">
+        <strong>Upload an image</strong>
+        <span>Click <em>Upload image</em> and choose any photo. Portraits give the richest results because face landmarks concentrate detail around the eyes, nose, and mouth. The app also works well with flowers, animals, and other colorful subjects.</span>
+      </div>
+    </li>
+    <li>
+      <span class="step-num">3</span>
+      <div class="step-body">
+        <strong>Review the analysis sidebar</strong>
+        <span>Six thumbnails appear on the right of the canvas as each analysis completes. Each shows what was detected — hover to enlarge. A status line under the title tells you whether the analysis succeeded and how it affects the painting. Use the <em>ignore</em> toggle to disable any result that looks wrong.</span>
+      </div>
+    </li>
+    <li>
+      <span class="step-num">4</span>
+      <div class="step-body">
+        <strong>Interact with the 3D painting</strong>
+        <span>Drag to orbit, scroll to zoom, right-drag or two-finger drag to pan. The canvas is live from page load — strokes appear as soon as analysis finishes.</span>
+      </div>
+    </li>
+    <li>
+      <span class="step-num">5</span>
+      <div class="step-body">
+        <strong>Tweak settings and export</strong>
+        <span>Open the settings panel with the tune icon. Adjust any parameter — the painting rebuilds automatically. When you are satisfied, save a PNG or JPG from the Canvas section.</span>
+      </div>
+    </li>
+  </ol>
+
+  <!-- ── Analysis sidebar ─────────────────────────────────────────────────── -->
+  <h2>Analysis sidebar</h2>
+  <p>
+    Six analysis thumbnails sit beside the 3D canvas. Each shows the raw output of one
+    analysis pass. Hover a thumbnail to see a large preview. A status line under each title
+    tells you whether the analysis succeeded and how it feeds into the painting.
+    Use the <em>ignore</em> toggle to disable any result that looks wrong — the 3D view
+    rebuilds immediately.
+  </p>
+
+  <div class="analysis-list">
+    <div class="analysis-item" id="original">
+      <span class="dot blue"></span>
+      <div class="analysis-body">
+        <div class="analysis-name">Original</div>
+        <div class="analysis-desc">
+          Your uploaded image, displayed as-is. Every stroke samples its color directly
+          from the original pixels at the stroke's start and end points, so this is the
+          only analysis that is always active and cannot be ignored.
+        </div>
+      </div>
+    </div>
+    <div class="analysis-item" id="segmentation">
+      <span class="dot purple"></span>
+      <div class="analysis-body">
+        <div class="analysis-name">Segmentation</div>
+        <div class="analysis-desc">
+          MediaPipe's selfie segmentation model classifies every pixel into one of six
+          categories: background, hair, body skin, face skin, clothes, and others.
+          <strong>Used in this demo:</strong> strokes are only seeded inside non-background
+          pixels, so the painting fills the subject's silhouette rather than the whole frame.
+          If the mask is judged unusable (less than 4% or more than 96% of the image is
+          non-background), or if you toggle <em>ignore</em>, strokes spread across
+          the whole image instead.
+        </div>
+      </div>
+    </div>
+    <div class="analysis-item" id="depth">
+      <span class="dot amber"></span>
+      <div class="analysis-body">
+        <div class="analysis-name">Depth Map</div>
+        <div class="analysis-desc">
+          DepthAnything v2 (ONNX, fp32) estimates relative per-pixel depth. Brighter
+          values are further from the camera; darker values are closer.
+          <strong>Used in this demo:</strong> each stroke is placed on a 3D surface whose
+          Z coordinate is read from this map, so the painting has genuine depth you can
+          orbit around. Surface normals are also derived from the depth gradient, orienting
+          strokes to lie tangentially on the reconstructed shape. Toggle <em>ignore</em>
+          to flatten everything to a single plane.
+        </div>
+      </div>
+    </div>
+    <div class="analysis-item" id="face-landmarks">
+      <span class="dot green"></span>
+      <div class="analysis-body">
+        <div class="analysis-name">Face Landmarks</div>
+        <div class="analysis-desc">
+          MediaPipe's face landmarker detects 478 mesh points across the face. A curated
+          subset of 24 key points is extracted — covering the eye corners, iris centres,
+          nose bridge, nose tip, mouth corners, lip edges, and eyebrow arches.
+          <strong>Used in this demo:</strong> stroke seeds are biased toward these feature
+          points using a Gaussian probability field, so detail strokes cluster around the
+          eyes, nose, and mouth while broader strokes fill the rest of the face. The
+          <em>Density ratio</em> slider controls how strongly strokes cluster. If no face
+          is detected, the app falls back to color region focus points automatically.
+          Toggle <em>ignore</em> to remove the facial clustering entirely.
+        </div>
+      </div>
+    </div>
+    <div class="analysis-item" id="edge-saliency">
+      <span class="dot teal"></span>
+      <div class="analysis-body">
+        <div class="analysis-name">Edge Saliency</div>
+        <div class="analysis-desc">
+          A Sobel gradient filter applied to a 256×256 luminance downsample of the image
+          identifies regions with strong local contrast — contour edges, texture boundaries,
+          and fine detail. The result is normalised to a 0–1 saliency map.
+          <strong>Used in this demo:</strong> this map is visualised for inspection.
+          It is computed without any AI model and always succeeds.
+        </div>
+      </div>
+    </div>
+    <div class="analysis-item" id="subject-regions">
+      <span class="dot amber"></span>
+      <div class="analysis-body">
+        <div class="analysis-name">Subject Regions</div>
+        <div class="analysis-desc">
+          HSV colour analysis on a 128×128 downsample finds the most saturated,
+          non-green regions of the image. An 8×8 weighted-centroid grid produces up to
+          16 focus zones shown as yellow dots on the thumbnail.
+          <strong>Used in this demo:</strong> when no face is detected these focus zones
+          replace facial landmarks as the stroke-density attractor, pulling detail toward
+          colourful subjects such as flowers, fabric, or animals. When segmentation is
+          also unavailable, the subject probability map is used to filter stroke seeds so
+          they concentrate in the most colourful areas. Toggle <em>ignore</em> to
+          distribute strokes evenly regardless of colour.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 3D Settings ────────────────────────────────────────────────────── -->
+  <h2>3D Settings</h2>
+  <p>
+    Open the settings panel with the tune icon in the toolbar. All parameters rebuild
+    the painting with a short debounce after you stop adjusting.
+  </p>
+
+  <!-- Strokes -->
+  <h3>Strokes</h3>
+  <div class="param-block">
+    <div class="param-row">
+      <span class="param-name">Count</span>
+      <span class="param-range">1 – 30 000</span>
+      <span class="param-desc">Total number of brushstrokes. Higher counts fill the image more densely but rebuild slower. 1 000–4 000 is a good starting range.</span>
+    </div>
+    <div class="param-row">
+      <span class="param-name">Density ratio</span>
+      <span class="param-range">1 – 500</span>
+      <span class="param-desc">How strongly strokes are pulled toward feature zones (face landmarks or color focus points). At 1, strokes are distributed evenly across the subject. At 500, nearly all strokes cluster near the detected features.</span>
+    </div>
+    <div class="param-row">
+      <span class="param-name">Min length</span>
+      <span class="param-range">2 – 20</span>
+      <span class="param-desc">Minimum number of steps in a stroke path. Strokes near feature zones (high detail) tend toward shorter lengths.</span>
+    </div>
+    <div class="param-row">
+      <span class="param-name">Max length</span>
+      <span class="param-range">4 – 40</span>
+      <span class="param-desc">Maximum steps for strokes in low-detail areas. Longer strokes give a painterly, gestural feel away from focal regions.</span>
+    </div>
+  </div>
+
+  <!-- Size & Layering -->
+  <h3>Size &amp; Layering</h3>
+  <div class="param-block">
+    <div class="param-row">
+      <span class="param-name">Large width</span>
+      <span class="param-range">1 – 50</span>
+      <span class="param-desc">Width of strokes in low-detail areas. Higher values produce broad, impasto-style marks in the background.</span>
+    </div>
+    <div class="param-row">
+      <span class="param-name">Fine width</span>
+      <span class="param-range">1 – 10</span>
+      <span class="param-desc">Width of strokes near feature points. Low values give delicate, hair-like marks around the eyes and other detail areas.</span>
+    </div>
+    <div class="param-row">
+      <span class="param-name">Detail sharpness</span>
+      <span class="param-range">1 – 10</span>
+      <span class="param-desc">Controls how abruptly the width and length transition from coarse to fine as strokes approach feature points. Higher values make the focal zones feel more distinct.</span>
+    </div>
+    <div class="param-row">
+      <span class="param-name">Layer depth</span>
+      <span class="param-range">0 – 20</span>
+      <span class="param-desc">How much detail-area strokes are pushed toward the camera in Z. Higher values make the focal region appear to float in front of the background layer.</span>
+    </div>
+  </div>
+
+  <!-- Color -->
+  <h3>Color</h3>
+  <div class="param-block">
+    <div class="param-row">
+      <span class="param-name">Hue rotation</span>
+      <span class="param-range">−180 – 180°</span>
+      <span class="param-desc">Shifts all stroke colors around the color wheel. 0 preserves original colors; ±180 inverts the hue completely.</span>
+    </div>
+    <div class="param-row">
+      <span class="param-name">Saturation</span>
+      <span class="param-range">0 – 200%</span>
+      <span class="param-desc">Multiplier applied to saturation. Below 100 desaturates toward grey; above 100 intensifies colors. 90 is a slight mute that reads well as paint.</span>
+    </div>
+    <div class="param-row">
+      <span class="param-name">Color noise</span>
+      <span class="param-range">0 – 100</span>
+      <span class="param-desc">Adds random variation to hue, saturation, and lightness per stroke, mimicking the unpredictability of physical paint mixing. 0 gives clean flat color; 70+ gives a lively, hand-painted feel.</span>
+    </div>
+  </div>
+
+  <!-- Stroke Type -->
+  <h3>Stroke Type</h3>
+  <div class="param-block">
+    <div class="param-row">
+      <span class="param-name">Legacy</span>
+      <span class="param-range"></span>
+      <span class="param-desc">Ribbon geometry built from a single merged mesh. Fast to generate, uses a custom procedural brush texture baked into a canvas. All strokes share one draw call.</span>
+    </div>
+    <div class="param-row">
+      <span class="param-name">Reference</span>
+      <span class="param-range"></span>
+      <span class="param-desc">Each stroke is rendered using the StrokeRenderer module — a higher-quality path that supports smoother cap shapes and richer noise modes. Slightly slower to build for very high stroke counts.</span>
+    </div>
+  </div>
+
+  <!-- Stroke Style -->
+  <h3>Stroke Style</h3>
+  <div class="param-block">
+    <div class="param-section-title">Render mode</div>
+    <div class="param-row">
+      <span class="param-name">Flat</span>
+      <span class="param-range"></span>
+      <span class="param-desc">Uniform color sampled from the stroke's start point.</span>
+    </div>
+    <div class="param-row">
+      <span class="param-name">Gradient along</span>
+      <span class="param-range"></span>
+      <span class="param-desc">Color interpolates from start-point color to end-point color along the stroke's length.</span>
+    </div>
+    <div class="param-row">
+      <span class="param-name">Gradient across</span>
+      <span class="param-range"></span>
+      <span class="param-desc">Color interpolates across the stroke's width.</span>
+    </div>
+    <div class="param-row">
+      <span class="param-name">Noise along</span>
+      <span class="param-range"></span>
+      <span class="param-desc">Noise-warped gradient along the stroke length. Gives an organic, bristle-like color variation.</span>
+    </div>
+    <div class="param-row">
+      <span class="param-name">Noise across</span>
+      <span class="param-range"></span>
+      <span class="param-desc">Noise-warped gradient across the stroke width.</span>
+    </div>
+
+    <div class="param-section-title" style="margin-top:0;border-top:1px solid #ebebeb;">Cap style</div>
+    <div class="param-row">
+      <span class="param-name">Square</span>
+      <span class="param-range"></span>
+      <span class="param-desc">Stroke ends are cut flat — like a flat-bristle brush.</span>
+    </div>
+    <div class="param-row">
+      <span class="param-name">Rounded</span>
+      <span class="param-range"></span>
+      <span class="param-desc">Ends are trimmed to a semicircle for a clean, marker-like feel.</span>
+    </div>
+    <div class="param-row">
+      <span class="param-name">Ragged</span>
+      <span class="param-range"></span>
+      <span class="param-desc">Ends are broken up with noise, mimicking the dry-brush fraying of real bristles.</span>
+    </div>
+  </div>
+
+  <!-- Surface -->
+  <h3>Surface</h3>
+  <div class="param-block">
+    <div class="param-row">
+      <span class="param-name">Surface jitter</span>
+      <span class="param-range">0 – 30</span>
+      <span class="param-desc">Adds small random Z offsets to each stroke point, breaking up the perfectly smooth depth surface and giving a more textured feel.</span>
+    </div>
+    <div class="param-row">
+      <span class="param-name">Wireframe</span>
+      <span class="param-range">on / off</span>
+      <span class="param-desc">Shows the underlying ribbon geometry as a white wireframe. Useful for understanding stroke topology. Only active in Legacy mode.</span>
+    </div>
+    <div class="param-row">
+      <span class="param-name">Cull front</span>
+      <span class="param-range">on / off</span>
+      <span class="param-desc">Discards stroke faces whose surface normal points toward the camera. Reveals the back side of the depth surface when the view is rotated behind the subject.</span>
+    </div>
+    <div class="param-row">
+      <span class="param-name">Cull back</span>
+      <span class="param-range">on / off</span>
+      <span class="param-desc">Discards stroke faces pointing away from the camera — the conventional behaviour for opaque objects.</span>
+    </div>
+  </div>
+
+  <!-- Canvas -->
+  <h3>Canvas</h3>
+  <div class="param-block">
+    <div class="param-row">
+      <span class="param-name">Width / Height</span>
+      <span class="param-range">128 – 4096</span>
+      <span class="param-desc">Sets the actual WebGL canvas resolution in pixels. Larger sizes produce sharper exports but require more GPU memory. Click <em>Apply</em> to commit the change.</span>
+    </div>
+    <div class="param-row">
+      <span class="param-name">Background</span>
+      <span class="param-range">color picker</span>
+      <span class="param-desc">Sets the scene background color. Use <em>Pick on click</em> to sample directly from the canvas, or <em>Random sample</em> to pull a random pixel from the original image.</span>
+    </div>
+    <div class="param-row">
+      <span class="param-name">Save PNG / JPG</span>
+      <span class="param-range"></span>
+      <span class="param-desc">Exports the current canvas at its native resolution. PNG is lossless; JPG uses 95% quality and produces smaller files for sharing.</span>
+    </div>
+  </div>
+
+  <!-- ── Save / Load ────────────────────────────────────────────────────── -->
+  <h2>Save &amp; Load</h2>
+  <p>
+    Analysis data can be saved between sessions when you run a local server. The Save and
+    Load controls are hidden automatically when the app is served from a static host
+    (GitHub Pages, etc.).
+  </p>
+  <pre><code># Install dependencies (Node.js required)
+npm install
+
+# Start the local server
+./start.sh
+# or: node server.js</code></pre>
+  <p style="margin-top:12px;">
+    Then open <code>http://localhost:3000</code>. Saved analyses are stored as JSON files in the
+    <code>analysis/</code> folder. Saving prompts for a name; loading lets you pick from the
+    dropdown and press ↑.
+  </p>
+  <p>
+    On first launch with a local server, the app automatically loads the most recently saved
+    analysis so you can continue where you left off.
+  </p>
+
+  <!-- ── Privacy ──────────────────────────────────────────────────────────── -->
+  <h2>Privacy</h2>
+  <div class="note-box">
+    <p>
+      All processing runs in your browser. Your images and analysis results are never sent to
+      any server. The AI models (DepthAnything v2 and the two MediaPipe models) are downloaded
+      once from public CDNs (<code>cdn.jsdelivr.net</code>, <code>storage.googleapis.com</code>)
+      and cached locally by the browser. On subsequent visits, they load from cache with no
+      network request.
+    </p>
+  </div>
+
+  <!-- ── Tech stack ────────────────────────────────────────────────────── -->
+  <h2>Tech stack</h2>
+  <div class="tech-list">
+    <span class="tech-pill">Three.js — WebGL rendering</span>
+    <span class="tech-pill">MediaPipe Tasks Vision — segmentation &amp; face landmarks</span>
+    <span class="tech-pill">Transformers.js — depth estimation runtime</span>
+    <span class="tech-pill">DepthAnything v2 — depth model</span>
+    <span class="tech-pill">Sobel filter — edge saliency</span>
+    <span class="tech-pill">HSV analysis — color region detection</span>
+    <span class="tech-pill">Vanilla JS + Canvas API</span>
+    <span class="tech-pill">Node.js — local save/load server</span>
+  </div>
+
+</article>
+
+<footer>Image to Strokes &nbsp;·&nbsp; MIT License</footer>
+
+</body>
+</html>
